@@ -116,6 +116,11 @@
                   </p-columnFilter>
                 </div>
               </th>
+              <th style="min-width: 135px">
+                <div class="flex align-items-center justify-content-center gap-2">
+                  Tier Media
+                </div>
+              </th>
               <th>
                 <div class="flex align-items-center gap-2">
                   News Title
@@ -150,6 +155,11 @@
                   <a [href]="article.file_pdf" target="_blank" class="text-primary">
                     {{ article.media_name }}
                   </a>
+                </div>
+              </td>
+              <td>
+                <div class="flex justify-content-center align-items-center gap-2">
+                  {{ article.media_tier }}
                 </div>
               </td>
               <td>
