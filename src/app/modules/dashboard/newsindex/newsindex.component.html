@@ -96,6 +96,7 @@
                           <p-multiSelect
                             [options]="toneOptions"
                             optionLabel="label"
+                            optionValue="label"
                             [showHeader]="false"
                             [(ngModel)]="selectedTones"
                             placeholder="Select...">
@@ -116,9 +117,45 @@
                   </p-columnFilter>
                 </div>
               </th>
-              <th style="min-width: 135px">
+              <th style="min-width: 150px">
                 <div class="flex align-items-center justify-content-center gap-2">
                   Tier Media
+                  <p-columnFilter
+                    #columnFilter
+                    field="media_tier"
+                    matchMode="in"
+                    display="menu"
+                    [showMatchModes]="false"
+                    [showOperator]="false"
+                    [showAddButton]="false"
+                    [showApplyButton]="false"
+                    [showClearButton]="false"
+                    class="columnFilter">
+                    <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                      <div class="w-full" style="min-width: 320px">
+                        <div class="flex flex-column gap-2">
+                          <label class="font-semibold text-sm"> Media Tier </label>
+                          <!-- <p-multiSelect
+                            [options]="toneOptions"
+                            optionLabel="label"
+                            [showHeader]="false"
+                            [(ngModel)]="selectedTones"
+                            placeholder="Select...">
+                            <ng-template let-option pTemplate="item">
+                              <div class="inline-block vertical-align-middle">
+                                <span class="ml-1 mt-1">{{ option.label }}</span>
+                              </div>
+                            </ng-template>
+                          </p-multiSelect> -->
+                        </div>
+
+                        <div class="flex gap-2">
+                          <button class="mt-4" pButton [outlined]="true" type="button" label="Clear" (click)="clear()"></button>
+                          <button class="mt-4" pButton type="button" label="Apply" (click)="fetchData()"></button>
+                        </div>
+                      </div>
+                    </ng-template>
+                  </p-columnFilter>
                 </div>
               </th>
               <th>

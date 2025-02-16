@@ -113,7 +113,7 @@ export class NewsindexComponent {
     label: TONE_MAP[key],
     value: key,
   }));
-  selectedTones = this.toneOptions;
+  selectedTones! : any[];
 
   user: User | null = getUserFromLocalStorage();
 
@@ -182,6 +182,7 @@ export class NewsindexComponent {
 
   fetchData = (filter?: Partial<FilterRequestPayload>, order?: string, order_by?: string) => {
     this.isLoading = true;
+
     if (this.columnFilter) {
       this.columnFilter.overlayVisible = false;
     }
@@ -192,7 +193,9 @@ export class NewsindexComponent {
         ...filter,
         term: this.searchForm.get('query')?.value ?? '',
         search_field: this.searchForm.get('field')?.value ?? '',
-        sentiments: this.selectedTones.map((option: any) => option.label.toLowerCase()).join(','),
+        ...(this.selectedTones && this.selectedTones.length > 0
+          ? { sentiments: this.selectedTones.map((tone: string) => tone.toLowerCase()).join(',') }
+          : {})
       }, order, order_by)
       .subscribe((res) => {
         this.isLoading = false;
@@ -372,7 +375,7 @@ export class NewsindexComponent {
     const keywordRes = await this.articleService.getKeywordsByArticleId(article.article_id).toPromise();
 
     const cleanedAndSplitData = keywordRes!.data.flatMap((item: string) => {
-      const cleaned = item.replace(/^""|""$/g, ""); 
+      const cleaned = item.replace(/^""|""$/g, "");
       return cleaned.split("\" \"").map((keyword) => keyword.replace(/\"/g, "").trim()); // Split and clean
     });
 
