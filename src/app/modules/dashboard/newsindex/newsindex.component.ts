@@ -113,7 +113,12 @@ export class NewsindexComponent {
     label: TONE_MAP[key],
     value: key,
   }));
-  selectedTones! : any[];
+  selectedTones!: any[];
+
+  tierOptions = [
+    "1", "2", "3"
+  ]
+  selectedTier!: any[];
 
   user: User | null = getUserFromLocalStorage();
 
@@ -183,6 +188,8 @@ export class NewsindexComponent {
   fetchData = (filter?: Partial<FilterRequestPayload>, order?: string, order_by?: string) => {
     this.isLoading = true;
 
+    console.log(`selected tier : ${this.selectedTier}`);
+
     if (this.columnFilter) {
       this.columnFilter.overlayVisible = false;
     }
@@ -195,7 +202,8 @@ export class NewsindexComponent {
         search_field: this.searchForm.get('field')?.value ?? '',
         ...(this.selectedTones && this.selectedTones.length > 0
           ? { sentiments: this.selectedTones.map((tone: string) => tone.toLowerCase()).join(',') }
-          : {})
+          : {}),
+        ...(this.selectedTier?.length > 0 ? { media_tier: this.selectedTier.join(',') } : {})
       }, order, order_by)
       .subscribe((res) => {
         this.isLoading = false;

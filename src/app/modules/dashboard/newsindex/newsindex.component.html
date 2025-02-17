@@ -135,18 +135,17 @@
                       <div class="w-full" style="min-width: 320px">
                         <div class="flex flex-column gap-2">
                           <label class="font-semibold text-sm"> Media Tier </label>
-                          <!-- <p-multiSelect
-                            [options]="toneOptions"
-                            optionLabel="label"
+                          <p-multiSelect
+                            [options]="tierOptions"
                             [showHeader]="false"
-                            [(ngModel)]="selectedTones"
+                            [(ngModel)]="selectedTier"
                             placeholder="Select...">
                             <ng-template let-option pTemplate="item">
                               <div class="inline-block vertical-align-middle">
-                                <span class="ml-1 mt-1">{{ option.label }}</span>
+                                <span class="ml-1 mt-1">{{ option }}</span>
                               </div>
                             </ng-template>
-                          </p-multiSelect> -->
+                          </p-multiSelect>
                         </div>
 
                         <div class="flex gap-2">
