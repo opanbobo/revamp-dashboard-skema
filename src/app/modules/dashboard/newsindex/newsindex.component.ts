@@ -74,8 +74,11 @@ const highlightKeywords = (content: string, keywords: string[]): string => {
   styleUrl: './newsindex.component.scss',
 })
 export class NewsindexComponent {
-  @ViewChild('columnFilter')
-  columnFilter!: ColumnFilter;
+  @ViewChild('columnFilterMedia')
+  columnFilterMedia!: ColumnFilter;
+
+  @ViewChild('columnFilterTier')
+  columnFilterTier!: ColumnFilter;
   filter: any;
 
   articles!: Article[];
@@ -188,10 +191,14 @@ export class NewsindexComponent {
   fetchData = (filter?: Partial<FilterRequestPayload>, order?: string, order_by?: string) => {
     this.isLoading = true;
 
-    console.log(`selected tier : ${this.selectedTier}`);
+    console.log(`column filter : ${this.columnFilterMedia}`);
 
-    if (this.columnFilter) {
-      this.columnFilter.overlayVisible = false;
+    if (this.columnFilterMedia) {
+      this.columnFilterMedia.overlayVisible = false;
+    }
+
+    if (this.columnFilterTier) {
+      this.columnFilterTier.overlayVisible = false;
     }
 
     this.articleService
