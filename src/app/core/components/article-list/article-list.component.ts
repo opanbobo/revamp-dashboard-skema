@@ -24,5 +24,6 @@ export class ArticleListComponent {
   @Input() rows!: number;
   @Input() totalRecords!: number;
   @Input() search?: boolean;
+  @Input() page!: number;
   @Input() onPageChange!: (e: PaginatorState) => void;
 }

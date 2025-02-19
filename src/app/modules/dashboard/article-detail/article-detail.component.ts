@@ -100,8 +100,10 @@ export class ArticleDetailComponent {
     private sanitizer: DomSanitizer,
     private location: Location,
     private filterService: FilterService,
-    private messageService: MessageService
-  ) {}
+    private messageService: MessageService,
+    private route: ActivatedRoute, 
+    private router: Router
+  ) { }
 
   extractDateFromUrl = (url: string) => {
     // Get the part of the URL after the last '/'
@@ -193,10 +195,16 @@ export class ArticleDetailComponent {
   };
 
   ngOnInit() {
+    this.route.queryParams.subscribe(params => {
+      console.log(`first: ${params['first']} page: ${params['page']}`);
+    });
     this.fetchData();
   }
 
   goBack = () => {
-    this.location.back();
+    // this.location.back();
+    this.route.queryParams.subscribe(params => {
+      this.router.navigate(['/dashboard/articles'], { queryParams: { first: params['first'], page: params['page'] } });
+    });
   };
 }
