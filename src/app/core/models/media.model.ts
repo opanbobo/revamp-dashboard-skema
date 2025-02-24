@@ -26,6 +26,7 @@ export interface MediaList {
   tier: number;
   is_dewan_pers: boolean;
   is_international: boolean;
+  is_national: boolean;
 }
 
 export interface MediaListUpdate {
