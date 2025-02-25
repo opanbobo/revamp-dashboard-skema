@@ -239,7 +239,14 @@ export class MediaListComponent {
                 label: v.media_name,
                 data: v.media_id,
               };
-              if ((type == 'prioritas' && v.tier === 1) || (type == 'detail' && v.chosen) || (type == 'pers' && v.is_dewan_pers) || (type == 'international' && v.is_international) || (type == 'national' && v.is_national)) {
+              if (
+                (type == 'prioritas' && v.tier === 1) || 
+                (type == 'detail' && v.chosen) || 
+                (type == 'pers' && v.is_dewan_pers) || 
+                (type == 'international' && v.is_international) || 
+                (type == 'national' && v.is_national) ||
+                (type == 'language' && v.language === 'IND')
+              ) {
                 this.listSelected.push(child);
               }
               return child;
