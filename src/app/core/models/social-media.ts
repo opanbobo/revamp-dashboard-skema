@@ -2,6 +2,8 @@ export interface RequestGetChart {
   type: ChartType;
   startDate: string;
   endDate: string;
+  category_set?: number;
+  category_id?: string;
 }
 export interface RequestGetChartMentions {
   start_date: string;
@@ -13,6 +15,8 @@ export interface RequestGetChartMentions {
   author?: string;
   tag?: string;
   sources?: string;
+  category_set?: number;
+  category_id?: string;
 }
 
 export interface ResponseGetChart {

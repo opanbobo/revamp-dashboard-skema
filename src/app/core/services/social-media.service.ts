@@ -14,6 +14,8 @@ export class SocialMediaService {
       params: {
         start_date: req.startDate,
         end_date: req.endDate,
+        ...(req.category_set ? { category_set: req.category_set.toString() } : {}),
+        ...(req.category_id && req.category_id !== 'all' ? { category_id: req.category_id } : {}),
       },
     });
   }
@@ -22,6 +24,7 @@ export class SocialMediaService {
     return this.httpClient.get<any>(`${BASE_URL}/v1/socmed/mentions`, {
       params: {
         ...req,
+        ...(req.category_id && req.category_id !== 'all' ? { category_id: req.category_id } : {}),
       },
     });
   }

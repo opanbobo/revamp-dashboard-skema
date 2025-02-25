@@ -107,13 +107,13 @@ export class SocialMediaIndexComponent implements OnInit, OnDestroy {
     this.filterService.subscribe((filter) => {
       this.filter = filter;
       this.chartDetails = {} as ChartDetails;
-      this.getData(filter.start_date, filter.end_date);
+      this.getData(filter.start_date, filter.end_date, filter.category_id, filter.category_set);
     });
 
     this.subscription = this.commonService.darkMode$.pipe(skip(1)).subscribe(() => window.location.reload());
   }
 
-  getData(startDate: string, endDate: string) {
+  getData(startDate: string, endDate: string, category_id?: string, category_set?: number) {
     from(this.listCharts)
       .pipe(
         tap((v) => {
@@ -122,7 +122,7 @@ export class SocialMediaIndexComponent implements OnInit, OnDestroy {
         }),
         mergeMap((v, i) =>
           this.service
-            .getChart({ type: v.type, startDate, endDate })
+            .getChart({ type: v.type, startDate, endDate, category_id, category_set })
             .pipe(mergeMap((res: any) => [{ type: v.type, data: res?.data, index: i }]))
         )
       )
@@ -214,6 +214,8 @@ export class SocialMediaIndexComponent implements OnInit, OnDestroy {
         end_date,
         page: this.pagingInfo.page,
         size: this.pagingInfo.size,
+        category_id: this.filter.category_id,
+        category_set: this.filter.category_set,
         ...(data.drilldownToken?.filters?.keywords[0] && { keyword: data.drilldownToken.filters.keywords[0] }),
         ...(type === 'social-network-analysis' && { phrases }),
         ...(type === 'emotion-map' && { tone: tone.toLowerCase(), tag }),
