@@ -86,7 +86,7 @@ export class MapComponent {
   }
 
   ngAfterViewInit(): void {
-    this.fetchCitiesCount();
+    this.fetchCitiesCount(this.filter);
   }
 
   navigateInsideZone(article_id: string) {
@@ -398,6 +398,7 @@ export class MapComponent {
       this.geoJsonLayer.removeFrom(this.map!);
     }
     this.fetchProvinceCount(filterState);
+    this.fetchCitiesCount(filterState);
   };
 
   removeProvinceLayer = (province: string): void => {
