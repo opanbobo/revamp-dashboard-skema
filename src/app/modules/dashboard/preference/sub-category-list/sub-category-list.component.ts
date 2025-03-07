@@ -91,7 +91,7 @@ export class SubCategoryListComponent {
   constructor(
     private preferenceService: PreferenceService,
     private messageService: MessageService
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.fetchData();
@@ -266,11 +266,14 @@ export class SubCategoryListComponent {
 
   fetchKeyword = (category: any) => {
     this.preferenceService.getCategoryKeywords(category).subscribe((response) => {
+      const prevStartDate = this.editedValues.value.startDate;
+      const prevExpired = this.editedValues.value.expired;
+
       this.editedValues.setValue({
         category: category ?? '',
         keyword: '',
-        startDate: '',
-        expired: '',
+        startDate: prevStartDate || '',
+        expired: prevExpired || '',
       });
       this.existingKeywords = response?.data ?? [];
       this.modalUpdateOpen = true;
