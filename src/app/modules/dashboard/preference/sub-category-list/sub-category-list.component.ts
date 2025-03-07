@@ -189,7 +189,7 @@ export class SubCategoryListComponent {
     });
   };
 
-  updateCategory = async () => {
+  updateCategory = async (type: string) => {
     const { category, expired, startDate, keyword } = this.editedValues.value;
     if (!expired || !startDate || !expired) {
       return this.messageService.add({
@@ -215,7 +215,11 @@ export class SubCategoryListComponent {
     forkJoin(apis).subscribe({
       next: () => {
         this.fetchData(category!);
-        this.modalUpdateOpen = false;
+        if (type === 'add') {
+          this.fetchKeyword(this.selectedCategory?.category_id!);
+        } else {
+          this.modalUpdateOpen = false;
+        }
         this.messageService.add({
           severity: 'success',
           summary: 'Updated',

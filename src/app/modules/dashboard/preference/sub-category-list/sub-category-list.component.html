@@ -159,6 +159,14 @@
         <input type="date" formControlName="expired" id="expired" class="p-inputtext w-full" />
       </div>
     </div>
+    <div class="flex justify-content-end">
+      <p-button
+      (click)="updateCategory('add')"
+      label="Add Keyword"
+      pAutoFocus
+      [autofocus]="true"
+      [disabled]="!this.editedValues.controls.category.valid"></p-button>
+    </div>
     <div class="flex flex-column gap-2">
       <div class="flex justify-content-between" *ngFor="let keyword of existingKeywords">
         <div>{{ keyword }}</div>
@@ -171,8 +179,14 @@
   <div class="mt-4"></div>
   <ng-template pTemplate="footer">
     <p-button (click)="modalUpdateOpen = false" label="Cancel" pAutoFocus [outlined]="true"></p-button>
+    <!-- <p-button
+      (click)="updateCategory('add')"
+      label="Add Keyword"
+      pAutoFocus
+      [autofocus]="true"
+      [disabled]="!this.editedValues.controls.category.valid"></p-button> -->
     <p-button
-      (click)="updateCategory()"
+      (click)="updateCategory('update')"
       label="Save"
       pAutoFocus
       [autofocus]="true"
