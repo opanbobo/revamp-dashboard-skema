@@ -202,8 +202,8 @@
       (onNodeSelect)="onNodeSelect($event)"
       (onNodeUnselect)="onNodeUnselect($event)"
       [virtualScroll]="true"
-      [virtualScrollItemSize]="40"
-      [virtualScrollOptions]="{ scrollHeight: '320px' }">
+      [virtualScrollItemSize]="50"
+      [virtualScrollOptions]="{ scrollHeight: '300px', appendOnly: true }">
     </p-treeSelect>
   </div>
   <ng-template pTemplate="footer">
