@@ -189,7 +189,7 @@ export class ArticleDetailComponent {
           const parsed = this.extractDateFromUrl(file)?.split('-');
           const fileName = file.substring(file.lastIndexOf('/') + 1);
           if (parsed) {
-            file = `https://api.skema.co.id/media/media_tv/${parsed[0]}/${parsed[1]}/${parsed[2]}/${fileName}`;
+            file = `https://api.skema.co.id/media/media_radio/${parsed[0]}/${parsed[1]}/${parsed[2]}/${fileName}`;
           }
         }
         this.article = {
