@@ -185,6 +185,12 @@ export class ArticleDetailComponent {
           if (parsed) {
             file = `https://api.skema.co.id/media/media_tv/${parsed[0]}/${parsed[1]}/${parsed[2]}/${fileName}`;
           }
+        } else if (articleData?.media_type === 'media radio') {
+          const parsed = this.extractDateFromUrl(file)?.split('-');
+          const fileName = file.substring(file.lastIndexOf('/') + 1);
+          if (parsed) {
+            file = `https://api.skema.co.id/media/media_tv/${parsed[0]}/${parsed[1]}/${parsed[2]}/${fileName}`;
+          }
         }
         this.article = {
           ...articleData,
