@@ -17,6 +17,7 @@ import { selectAuthState } from '../../core/store/auth/auth.selectors';
 import { getUserFromLocalStorage } from '../../shared/utils/AuthUtils';
 import { setFilter } from '../../core/store/filter/filter.actions';
 import { initialState } from '../../core/store/filter/filter.reducer';
+import { KeycloakService } from 'keycloak-angular';
 
 @Component({
   selector: 'app-login',
@@ -38,7 +39,8 @@ export class LoginComponent implements OnInit {
   constructor(
     private store: Store<AppState>,
     private router: Router,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private keycloakService: KeycloakService,
   ) {
     this.authState = this.store.select(selectAuthState);
     const data = window.localStorage.getItem('useDarkMode');
@@ -75,5 +77,17 @@ export class LoginComponent implements OnInit {
     const { username, password } = this.loginForm.value;
     this.store.dispatch(setFilter({ filter: initialState }));
     this.store.dispatch(AuthActions.login({ username: username!, password: password! }));
+  }
+
+  loginWithSSO(){
+    this.keycloakService.login().then(() => {
+      const refereshtoken = this.keycloakService.getKeycloakInstance().refreshToken;
+      const accesstoken = this.keycloakService.getKeycloakInstance().token;
+      const accesstoken2 = this.keycloakService.getToken();
+
+      console.log('accesstoken', accesstoken);
+      console.log('accesstoken2', accesstoken2);
+      console.log('refereshtoken', refereshtoken);
+    });
   }
 }
