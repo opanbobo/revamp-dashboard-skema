@@ -7,12 +7,14 @@ import { Store } from '@ngrx/store';
 import * as AuthActions from '../../core/store/auth/auth.actions';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { CommonModule } from '@angular/common';
+import { ToastModule } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
 
 @Component({
   selector: 'app-sso-callback',
   standalone: true,
-  imports: [ButtonModule, ProgressSpinnerModule, CommonModule],
-  providers: [AuthService],
+  imports: [ButtonModule, ProgressSpinnerModule, CommonModule, ToastModule],
+  providers: [AuthService, MessageService],
   templateUrl: './sso-callback.component.html',
   styleUrl: './sso-callback.component.scss'
 })
@@ -22,7 +24,8 @@ export class SsoCallbackComponent {
     private router: Router,
     private keycloakService: KeycloakService,
     private authService: AuthService,
-    private store: Store
+    private store: Store,
+    private messageService: MessageService
   ) { }
 
   ngOnInit() {
@@ -39,11 +42,29 @@ export class SsoCallbackComponent {
       next: (user) => {
         console.log('user', user);
 
-        // Dispatch the loginSuccess action with the retrieved user data
+        if (user.code === 401) {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Unauthorized',
+            detail: user.message || 'Access denied',
+            life: 3000
+          });
+      
+          setTimeout(() => {
+            localStorage.clear();
+            sessionStorage.clear();
+            this.keycloakService.clearToken();
+            this.keycloakService.logout(window.location.origin + '/#/login');
+          }, 2000);
+      
+          // Optionally also dispatch failure
+          this.store.dispatch(AuthActions.loginFailure({ error: user.message }));
+          return;
+        }
+      
+        // If everything's fine, continue
         this.store.dispatch(AuthActions.loginSuccess({ user: user }));
-
-        // Optionally, navigate to another route after successful login
-        this.router.navigate(['/dashboard']); // Or your desired route
+        this.router.navigate(['/dashboard']);
       },
       error: (error) => {
         console.error('Error getting user data:', error);

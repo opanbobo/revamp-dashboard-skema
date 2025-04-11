@@ -15,4 +15,7 @@ export interface User {
   usr_comp_name: string;
   usr_join_date: string;
   usr_uid: string;
+
+  code: number;
+  message: string;
 }
