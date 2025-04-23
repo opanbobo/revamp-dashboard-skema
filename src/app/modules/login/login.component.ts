@@ -18,6 +18,8 @@ import { getUserFromLocalStorage } from '../../shared/utils/AuthUtils';
 import { setFilter } from '../../core/store/filter/filter.actions';
 import { initialState } from '../../core/store/filter/filter.reducer';
 import { KeycloakService } from 'keycloak-angular';
+import { OAuthService } from 'angular-oauth2-oidc';
+import { authCodeFlowConfig } from './auth.config';
 
 @Component({
   selector: 'app-login',
@@ -41,6 +43,7 @@ export class LoginComponent implements OnInit {
     private router: Router,
     private messageService: MessageService,
     private keycloakService: KeycloakService,
+    private oauthService: OAuthService
   ) {
     this.authState = this.store.select(selectAuthState);
     const data = window.localStorage.getItem('useDarkMode');
@@ -71,6 +74,11 @@ export class LoginComponent implements OnInit {
         });
       }
     });
+
+
+
+    this.oauthService.configure(authCodeFlowConfig);
+    this.oauthService.loadDiscoveryDocument();
   }
 
   login() {
@@ -90,4 +98,10 @@ export class LoginComponent implements OnInit {
       console.log('refereshtoken', refereshtoken);
     });
   }
+
+  loginWithOAuth() {
+    this.oauthService.initLoginFlow();
+  }
+
+
 }

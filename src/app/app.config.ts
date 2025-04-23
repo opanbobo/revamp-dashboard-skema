@@ -9,6 +9,7 @@ import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/jwt.interceptors';
 import { effects, reducers } from './core/store';
 import { KeycloakService } from 'keycloak-angular';
+import { provideOAuthClient } from 'angular-oauth2-oidc';
 
 function initializeKeycloak(keycloak: KeycloakService) {
   return () =>
@@ -16,12 +17,14 @@ function initializeKeycloak(keycloak: KeycloakService) {
       config: {
         url: 'https://sso.bpk.go.id/auth',
         realm: 'Humas',
-        clientId: 'skema-fe',
+        // clientId: 'skema-fe',
+        clientId: 'ca43969d-04a7-4366-baba-51cf79283c91'
       },
       initOptions: {
         checkLoginIframe: false,
         // onLoad: 'check-sso', // 'login-required' , 'check-sso',
-        redirectUri: window.location.origin + '/#/sso/callback',
+        // redirectUri: window.location.origin + '/#/sso/callback',
+        redirectUri: 'https://api.skema.co.id/sso/callback'
       },
       enableBearerInterceptor: true
     });
@@ -42,6 +45,6 @@ export const appConfig: ApplicationConfig = {
       deps: [KeycloakService]
     },
     KeycloakService,
-
+    provideOAuthClient()
   ],
 };

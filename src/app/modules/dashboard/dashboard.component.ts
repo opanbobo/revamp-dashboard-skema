@@ -22,6 +22,7 @@ import { Observable } from 'rxjs';
 import { Store } from '@ngrx/store';
 import { AppState } from '../../core/store';
 import { selectAuthState } from '../../core/store/auth/auth.selectors';
+import { OAuthService } from 'angular-oauth2-oidc';
 
 @Component({
   selector: 'app-dashboard',
@@ -89,6 +90,7 @@ export class DashboardComponent implements OnInit {
   constructor(
     private router: Router,
     private store: Store<AppState>,
+    private oauthService: OAuthService,
   ) {
     this.router.events.subscribe(() => {
       let currentRoute = this.router.routerState.root;
@@ -171,7 +173,14 @@ export class DashboardComponent implements OnInit {
         label: 'Logout',
         icon: 'pi pi-power-off',
         command: () => {
+          console.log('Logout clicked');
           window.localStorage.removeItem(USER_KEY);
+          if (this.oauthService.hasValidAccessToken()) {
+            this.oauthService.logOut();
+            localStorage.clear();
+            sessionStorage.clear();
+            return;
+          }
           this.router.navigateByUrl('login');
         },
       },

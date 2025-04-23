@@ -9,6 +9,9 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { CommonModule } from '@angular/common';
 import { ToastModule } from 'primeng/toast';
 import { MessageService } from 'primeng/api';
+import { OAuthService } from 'angular-oauth2-oidc';
+import { filter } from 'rxjs';
+import { authCodeFlowConfig } from './auth.config';
 
 @Component({
   selector: 'app-sso-callback',
@@ -25,10 +28,15 @@ export class SsoCallbackComponent {
     private keycloakService: KeycloakService,
     private authService: AuthService,
     private store: Store,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private oauthService: OAuthService
   ) { }
 
   ngOnInit() {
+    this.oauth2();
+  }
+
+  keycloak() {
     console.log('sso-callback.component: ngOnInit called');
     const refereshToken = this.keycloakService.getKeycloakInstance().refreshToken;
     const accessToken = this.keycloakService.getKeycloakInstance().token;
@@ -49,36 +57,91 @@ export class SsoCallbackComponent {
             detail: user.message || 'Access denied',
             life: 3000
           });
-      
+
           setTimeout(() => {
             localStorage.clear();
             sessionStorage.clear();
             this.keycloakService.clearToken();
             this.keycloakService.logout(window.location.origin + '/#/login');
           }, 2000);
-      
-          // Optionally also dispatch failure
+
           this.store.dispatch(AuthActions.loginFailure({ error: user.message }));
           return;
         }
-      
-        // If everything's fine, continue
+
         this.store.dispatch(AuthActions.loginSuccess({ user: user }));
         this.router.navigate(['/dashboard']);
       },
       error: (error) => {
         console.error('Error getting user data:', error);
 
-        // Dispatch the loginFailure action with the error message
         this.store.dispatch(AuthActions.loginFailure({ error: error.message || 'Unknown error' }));
-
-        // Optionally, navigate to the login page or display an error message
-        this.router.navigate(['/login']); // Or your desired error handling
+        this.router.navigate(['/login']);
       },
       complete: () => {
         console.log("observable completed");
       }
     });
+  }
+
+  async oauth2() {
+    try {
+      this.oauthService.configure(authCodeFlowConfig); // ✅ must be first
+
+      await this.oauthService.loadDiscoveryDocumentAndTryLogin(); // Combines discovery & code flow
+
+      const accessToken = this.oauthService.getAccessToken();
+      const refreshToken = this.oauthService.getRefreshToken(); // Might be null depending on server config
+
+      // console.log('✅ Access Token:', accessToken);
+      // console.log('🪪 ID Token:', this.oauthService.getIdToken());
+
+      // const profile = await this.oauthService.loadUserProfile();
+      // console.log('👤 User Profile:', profile);
+
+      if (!this.oauthService.hasValidAccessToken()) {
+        console.warn('❌ No valid access token after login');
+        return;
+      }
+
+      this.authService.userDetailFromToken(accessToken!, refreshToken!).subscribe({
+        next: (user) => {
+          console.log('user', user);
+
+          if (user.code === 401) {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Unauthorized',
+              detail: user.message || 'Access denied',
+              life: 3000
+            });
+
+            this.store.dispatch(AuthActions.loginFailure({ error: user.message }));
+            return;
+          }
+
+          this.store.dispatch(AuthActions.loginSuccess({ user }));
+          this.router.navigate(['/dashboard']);
+        },
+        error: (error) => {
+          console.error('Error getting user data:', error);
+          this.store.dispatch(AuthActions.loginFailure({ error: error.message || 'Unknown error' }));
+          this.router.navigate(['/login']);
+        },
+        complete: () => {
+          console.log("✅ User detail observable completed");
+        }
+      });
+
+    } catch (err) {
+      console.error('🔴 Error during login flow:', err);
+    }
+
+    this.oauthService.events
+      .pipe(filter((e) => e.type === 'token_received'))
+      .subscribe(() => {
+        console.log('✅ Token received');
+      });
   }
 
 }

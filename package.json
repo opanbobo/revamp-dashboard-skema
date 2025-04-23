@@ -23,6 +23,7 @@
     "@ngrx/effects": "^17.1.1",
     "@ngrx/store": "^17.1.1",
     "angular-d3-cloud": "^17.0.0",
+    "angular-oauth2-oidc": "^17.0.2",
     "angular-svg-icon": "^17.0.0",
     "chart.js": "^4.4.2",
     "chartjs-chart-treemap": "^2.3.0",
