@@ -170,7 +170,7 @@ export class DashboardComponent implements OnInit {
 
     this.profileItems = [
       {
-        label: 'Logout',
+        label: 'Logout SSO BPK',
         icon: 'pi pi-power-off',
         command: () => {
           console.log('Logout clicked');
