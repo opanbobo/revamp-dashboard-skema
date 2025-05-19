@@ -58,9 +58,10 @@ export class MediaNameComponent {
         } else {
           this.medias = [...this.medias, ...data].filter((v) => v.doc_count > 0);
         }
-        if (this.page === 1) {
-          this.setMedia(data[0]);
-        }
+        if (this.page === 1 && data.length > 0) {
+        this.setMedia(data[0]);
+        this.selectedMedia = data[0]; // <-- make sure selectedMedia is also set
+      }
         this.page = this.page + 1;
         this.total = meta.total_data;
       })

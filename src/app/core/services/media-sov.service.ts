@@ -51,6 +51,10 @@ export class MediaSOVService {
       category_id: filter.category_id ?? '',
     };
 
+    console.log('params', params);
+    console.log(`================================`)
+    console.log(`media id : ${filter.media_id}`);
+
     return this.http.get<{ data: Article[] }>(`${this.baseUrl}/v3/media-sov/latest-articles`, { params });
   }
 

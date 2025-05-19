@@ -67,8 +67,8 @@ export class LatestNewsComponent {
   }
 
   ngOnInit() {
-    this.filter = this.filterService.subscribe((filter) => {
-      this.fetchData({ ...filter, media_id: this.prevMedia?.media_id });
-    });
+    // this.filter = this.filterService.subscribe((filter) => {
+    //   this.fetchData({ ...filter, media_id: this.prevMedia?.media_id });
+    // });
   }
 }
