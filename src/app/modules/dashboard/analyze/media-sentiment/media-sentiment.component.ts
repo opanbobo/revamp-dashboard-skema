@@ -27,6 +27,7 @@ import { initialState } from '../../../../core/store/filter/filter.reducer';
 })
 export class MediaSentimentComponent {
   analyzeState: Observable<AnalyzeState>;
+  filter: any;
   isLoading: boolean = false;
   chartData: any;
   tones: Tones | null = null;
@@ -52,6 +53,7 @@ export class MediaSentimentComponent {
     });
     this.filterService.subscribe((v) => {
       const filter = { ...v };
+      this.filter = filter;
 
       const start = moment(filter.start_date);
       const end = moment(filter.end_date);
@@ -61,7 +63,7 @@ export class MediaSentimentComponent {
 
       console.log('Chart View:', isByMonth ? 'Monthly' : 'Daily');
 
-      this.isMonthlyView = isByMonth; // store this for later use if needed
+      this.isMonthlyView = isByMonth; 
 
       this.store.dispatch(getTones({ filter }));
     });
@@ -181,6 +183,9 @@ export class MediaSentimentComponent {
       getArticlesByTone({
         filter: {
           ...initialState,
+          category_id: this.filter.category_id,
+          category_set: this.filter.category_set,
+          user_media_type_id: this.filter.user_media_type_id,
           tone: currentData.tone,
           start_date: startDate,
           end_date: endDate,
