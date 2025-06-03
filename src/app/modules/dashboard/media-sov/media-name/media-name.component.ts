@@ -72,7 +72,7 @@ export class MediaNameComponent {
 
   ngOnInit() {
     this.filter = this.filterService.subscribe((filter) => {
-      this.page = this.page;
+      this.page = 1;
       this.medias = [];
       this.fetchData({ ...filter } as FilterRequestPayload, false);
     });
