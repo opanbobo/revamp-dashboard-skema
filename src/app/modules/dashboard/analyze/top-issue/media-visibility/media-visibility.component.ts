@@ -14,11 +14,13 @@ import { AppState } from '../../../../../core/store';
 import { AnalyzeState } from '../../../../../core/store/analyze/analyze.reducer';
 import { selectAnalyzeState } from '../../../../../core/store/analyze/analyze.selectors';
 import { barOpacityPlugin, htmlLegendPlugin } from '../../../../../shared/utils/ChartUtils';
+import { TabViewModule } from 'primeng/tabview';
+import { TabMenuModule } from 'primeng/tabmenu';
 
 @Component({
   selector: 'app-media-visibility',
   standalone: true,
-  imports: [ChartCardComponent, ChartModule, SpinnerComponent, CommonModule],
+  imports: [ChartCardComponent, ChartModule, SpinnerComponent, CommonModule, TabViewModule, TabMenuModule],
   templateUrl: './media-visibility.component.html',
   styleUrl: './media-visibility.component.scss',
 })
@@ -39,9 +41,24 @@ export class MediaVisibilityComponent {
   visibilityPieOpts: any;
   visibilityPiePlugins = [htmlLegendPlugin];
 
+  visibilityBarComparisonData: any;
+  visibilityBarComparisonOpts: any;
+  visibilityBarComparisonPlugins = [htmlLegendPlugin];
+
   analyzeState: Observable<AnalyzeState>;
   isLoading: boolean = false;
   isDrilldownVisibilityChart: boolean = false;
+
+  tabItems = [
+    { label: 'Pie Chart', key: 'pie' },
+    { label: 'Bar Comparison', key: 'bar' }
+  ];
+
+  activeTab = this.tabItems[0]; 
+
+  onActiveItemChange(event: any) {
+    this.activeTab = event;
+  }
 
   constructor(
     private store: Store<AppState>,
@@ -91,7 +108,7 @@ export class MediaVisibilityComponent {
 
   initChartData = (mediaVisibility: MediaVisibility[]) => {
     if (mediaVisibility.length) {
-      const { lineDatasets, lineLabels, pieLabels, pieDatasets, visibilityBarDatasets, barLabels } = this.getChartData(mediaVisibility);
+      const { lineDatasets, lineLabels, pieLabels, pieDatasets, visibilityBarDatasets, barLabels, visibilityBarComparisonData } = this.getChartData(mediaVisibility);
 
       this.visibilityPieData = { labels: pieLabels, datasets: pieDatasets };
       this.visibilityChartLineData = {
@@ -102,6 +119,8 @@ export class MediaVisibilityComponent {
         labels: barLabels,
         datasets: visibilityBarDatasets,
       };
+
+      this.visibilityBarComparisonData = visibilityBarComparisonData;
     }
   };
 
@@ -270,6 +289,49 @@ export class MediaVisibilityComponent {
         },
       },
     };
+
+    this.visibilityBarComparisonOpts = {
+      indexAxis: 'y',
+      maintainAspectRatio: false,
+      aspectRatio: 0.8,
+      plugins: {
+        tooltip: { mode: 'index', intersect: false },
+        barOpacityPlugin: {
+          opacity: 1,
+        },
+        legend: {
+          position: 'bottom',
+          align: 'start',
+          labels: {
+            padding: 32,
+            boxWidth: 14,
+            boxHeight: 5,
+            color: isDarkMode ? 'white' : documentStyle.getPropertyValue('--text-color'),
+          },
+        },
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: {
+            color: textColorSecondary,
+          },
+          grid: {
+            color: surfaceBorder,
+            drawBorder: false,
+          },
+        },
+        y: {
+          ticks: {
+            color: textColorSecondary,
+          },
+          grid: {
+            color: surfaceBorder,
+            drawBorder: false,
+          },
+        },
+      },
+    };
   };
 
   getChartData = (mediaVisibility: MediaVisibility[]) => {
@@ -323,6 +385,18 @@ export class MediaVisibilityComponent {
         : moment(bucket.key_as_string).format('DD MMM');
     });
 
+    const visibilityBarComparisonLabels = mediaVisibility.map(media => media.key);
+    const visibilityBarComparisonData = {
+      labels: visibilityBarComparisonLabels,
+      datasets: [
+        {
+          label: 'Total Document Count',
+          backgroundColor: '#42A5F5',
+          data: mediaVisibility.map(media => media.doc_count),
+        },
+      ],
+    };
+
     return {
       lineLabels,
       lineDatasets,
@@ -330,6 +404,7 @@ export class MediaVisibilityComponent {
       pieDatasets,
       barLabels: lineLabels,
       visibilityBarDatasets,
+      visibilityBarComparisonData
     };
   };
 }

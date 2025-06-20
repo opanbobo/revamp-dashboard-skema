@@ -2,47 +2,54 @@
   <spinner [spinning]="isLoading">
     <div class="grid">
       <div class="col-12">
-        <chart-card
-          id="visibilityChart"
-          title="Visibility Chart"
-          [actionButton]="visibilityChartActionButton"
-          [showBack]="isDrilldownVisibilityChart"
-          (onBack)="getData()">
-          <p-chart
-            *ngIf="!visibilityChartActionButton.toggle.value"
-            type="line"
-            [data]="visibilityChartLineData"
-            [options]="visibilityChartLineOpts"
-            (onDataSelect)="onVisibilityPieSelect($event, 'line')"></p-chart>
-          <p-chart
-            *ngIf="visibilityChartActionButton.toggle.value"
-            type="bar"
-            [data]="visibilityChartBarData"
-            [options]="visibilityChartBarOpts"
-            [plugins]="visibilityChartBarPlugins"
+        <chart-card id="visibilityChart" title="Visibility Chart" [actionButton]="visibilityChartActionButton"
+          [showBack]="isDrilldownVisibilityChart" (onBack)="getData()">
+          <p-chart *ngIf="!visibilityChartActionButton.toggle.value" type="line" [data]="visibilityChartLineData"
+            [options]="visibilityChartLineOpts" (onDataSelect)="onVisibilityPieSelect($event, 'line')"></p-chart>
+          <p-chart *ngIf="visibilityChartActionButton.toggle.value" type="bar" [data]="visibilityChartBarData"
+            [options]="visibilityChartBarOpts" [plugins]="visibilityChartBarPlugins"
             (onDataSelect)="onVisibilityPieSelect($event, 'bar')"></p-chart>
         </chart-card>
       </div>
       <div class="col-12">
-        <chart-card title="Visibility Pie" id="visibilityPie" [actionButton]="visibilityPieActionButton">
-          <div *ngIf="!visibilityPieActionButton.toggle.value" class="flex align-items-center justify-content-center gap-6">
-            <div id="legend-container" class="flex flex-column justify-content-center align-items-center gap-6">
-              <p-chart
-                type="pie"
-                [data]="visibilityPieData"
-                [options]="visibilityPieOpts"
-                [plugins]="visibilityPiePlugins"
-                (onDataSelect)="onVisibilityPieSelect($event, 'pie')"></p-chart>
+        <chart-card title="Visibility Chart" id="visibilityPie" [actionButton]="visibilityPieActionButton">
+
+          <div *ngIf="!visibilityPieActionButton.toggle.value">
+            <div class="relative">
+              <p-tabMenu [model]="tabItems" [activeItem]="activeTab" (activeItemChange)="onActiveItemChange($event)"
+                [style]="{ backgroundColor: 'var(--bg-color)' }">
+                <ng-template pTemplate="item" let-item>
+                  <div class="p-menuitem-link flex justify-content-between align-items-center cursor-pointer">
+                    <div class="flex align-items-center gap-2">
+                      <i class="pi pi-chart-pie" *ngIf="item.key === 'pie'"></i>
+                      <i class="pi pi-chart-bar" *ngIf="item.key === 'bar'"></i>
+                      <div class="text-xs font-medium">{{ item.label }}</div>
+                    </div>
+                  </div>
+                </ng-template>
+              </p-tabMenu>
+            </div>
+
+            <div class="py-4 flex justify-content-center">
+              <div *ngIf="activeTab?.key === 'pie'" id="legend-container">
+                <p-chart type="pie" [data]="visibilityPieData" [options]="visibilityPieOpts"
+                  [plugins]="visibilityPiePlugins" (onDataSelect)="onVisibilityPieSelect($event, 'pie')">
+                </p-chart>
+              </div>
+
+              <div *ngIf="activeTab?.key === 'bar'" style="width: 100%; max-width: 700px">
+                <p-chart type="bar" [data]="visibilityBarComparisonData" [options]="visibilityBarComparisonOpts"
+                  style="height: 300px; width: 100%">
+                </p-chart>
+              </div>
             </div>
           </div>
+
           <div *ngIf="visibilityPieActionButton.toggle.value">
-            <p-chart
-              type="bar"
-              [data]="visibilityChartBarData"
-              [options]="visibilityChartBarOpts"
-              [plugins]="visibilityChartBarPlugins"
-              (onDataSelect)="onVisibilityPieSelect($event, 'bar')"></p-chart>
+            <p-chart type="bar" [data]="visibilityChartBarData" [options]="visibilityChartBarOpts"
+              [plugins]="visibilityChartBarPlugins" (onDataSelect)="onVisibilityPieSelect($event, 'bar')"></p-chart>
           </div>
+
         </chart-card>
       </div>
     </div>
