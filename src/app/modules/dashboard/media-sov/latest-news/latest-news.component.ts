@@ -16,11 +16,15 @@ import { selectMediaSOVState } from '../../../../core/store/media-sov/media-sov.
 import _ from 'lodash';
 import { MediaSOV } from '../../../../core/models/media.model';
 import { RouterLink } from '@angular/router';
+import { IconSearchComponent } from '../../../../core/components/icons/search/search.component';
+import { DialogModule } from 'primeng/dialog';
+import { ButtonModule } from 'primeng/button';
+import { ScrollerModule } from 'primeng/scroller';
 
 @Component({
   selector: 'app-latest-news',
   standalone: true,
-  imports: [IconNewspaperComponent, IconInfoComponent, CommonModule, ImgFallbackDirective, SpinnerComponent, RouterLink],
+  imports: [IconNewspaperComponent, IconInfoComponent, IconSearchComponent, CommonModule, ImgFallbackDirective, SpinnerComponent, RouterLink, DialogModule, ButtonModule, ScrollerModule],
   templateUrl: './latest-news.component.html',
   styleUrl: './latest-news.component.scss',
 })
@@ -30,9 +34,13 @@ export class LatestNewsComponent {
     this.filter?.unsubscribe?.();
   }
   articles: Article[] = [];
+  moreArticles: Article[] = [];
   isLoading: boolean = false;
   mediaSOVState: Observable<MediaSOVState>;
   prevMedia: MediaSOV | null = null;
+  showMoreModal: boolean = false;
+  total = 0;
+  page = 1;
 
   @Input() media: any = null;
 
@@ -42,6 +50,7 @@ export class LatestNewsComponent {
     private store: Store<AppState>
   ) {
     this.mediaSOVState = this.store.select(selectMediaSOVState);
+    // console.log(`MediaSOVState initialized: ${this.mediaSOVState}`);
   }
 
   fetchData = (filter: FilterRequestPayload) => {
@@ -59,6 +68,9 @@ export class LatestNewsComponent {
   ngOnChanges(changes: any) {
     const { media } = changes;
     if (!media.firstChange && !_.isEqual(media.currentValue, media.previousValue)) {
+      this.moreArticles = [];
+      this.page = 1;
+      console.log(`Media changed: ${media.currentValue}`);
       this.fetchData({
         ...this.filterService.filter,
         media_id: media.currentValue?.media_id,
@@ -71,4 +83,43 @@ export class LatestNewsComponent {
     //   this.fetchData({ ...filter, media_id: this.prevMedia?.media_id });
     // });
   }
+
+  onLazyLoad(event: any) {
+    console.log('onLazyLoad');
+    const h = event.target.scrollHeight - event.target.scrollTop - event.target.clientHeight;
+
+    if (h === 0 && this.moreArticles.length > 0) {
+      console.log('Fetching more articles');
+      console.log(`Current total: ${this.total}, Current articles length: ${this.moreArticles.length}`);
+      if (this.moreArticles.length >= this.total) return;
+      this.fetchMoreArticles();
+    }
+  }
+
+  fetchMoreArticles() {
+    if (!this.showMoreModal) {
+      this.showMoreModal = true;
+    }
+    
+    this.isLoading = true;
+
+    this.mediaSOVService
+      .getLatestArticles({
+        ...this.filterService.filter,
+        media_id: this.media?.media_id,
+        page: this.page,
+        max_size: '20',
+      })
+      .subscribe(({ data, meta }) => {
+        this.moreArticles = [...this.moreArticles, ...(data ?? [])]; // ✅ append new articles
+        this.total = meta.total_data ?? 0; // ✅ update total count 
+        console.log(`Total more articles: ${this.moreArticles.length}`);
+        console.log(`Meta: ${meta.total_data}`);
+        this.page += 1;
+      })
+      .add(() => {
+        this.isLoading = false;
+      });
+  }
+
 }
