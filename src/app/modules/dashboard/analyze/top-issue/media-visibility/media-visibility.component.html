@@ -31,7 +31,7 @@
             </div>
 
             <div class="py-4 flex justify-content-center">
-              <div *ngIf="activeTab?.key === 'pie'" id="legend-container">
+              <div *ngIf="activeTab?.key === 'pie'" id="legend-container" style="display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%;">
                 <p-chart type="pie" [data]="visibilityPieData" [options]="visibilityPieOpts"
                   [plugins]="visibilityPiePlugins" (onDataSelect)="onVisibilityPieSelect($event, 'pie')">
                 </p-chart>
