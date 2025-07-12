@@ -61,6 +61,23 @@ export class ArticleService {
     });
   }
 
+  getUserEditingV3(
+    filter: FilterRequestPayload, 
+    order: string = 'asc', 
+    order_by: string = 'datee'
+  ): Observable<ArticleResponse> {
+    return this.http.post<ArticleResponse>(`${this.baseUrl}/v3/user/editing/`, {
+      ...filter,
+      start_date: filter.start_date ? `${filter.start_date} ${filter.start_time}` : '',
+      end_date: filter.end_date ? `${filter.end_date} ${filter.end_time}` : '',
+      media_id: filter.media_id ?? 0,
+      max_size: filter.size ?? 16,
+      page: filter.page ?? 0,
+      order, 
+      order_by, 
+    });
+  }
+
   getArticlesByTone(filter: FilterRequestPayload): Observable<ArticleResponse> {
     return this.http.post<ArticleResponse>(`${this.baseUrl}/v1/dashboard/article-by-tone`, {
       ...filter,

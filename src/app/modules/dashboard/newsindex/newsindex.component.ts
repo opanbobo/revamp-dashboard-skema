@@ -202,7 +202,7 @@ export class NewsindexComponent {
     }
 
     this.articleService
-      .getUserEditing({
+      .getUserEditingV3({
         ...this.filterService.filter,
         ...filter,
         term: this.searchForm.get('query')?.value ?? '',
