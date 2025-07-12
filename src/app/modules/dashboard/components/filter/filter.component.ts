@@ -51,9 +51,9 @@ export class FilterComponent {
   selectedSubCategory: string = initialState.category_id;
   selectedMedia: number = initialState.user_media_type_id;
   startDate: Date = moment(initialState.start_date).toDate();
-  startTime: Date = moment(initialState.start_date).toDate();
+  startTime: Date = moment(`${initialState.start_date} ${initialState.start_time}`).toDate();
   endDate: Date = moment(initialState.end_date).toDate();
-  endTime: Date = moment(initialState.end_date).toDate();
+  endTime: Date = moment(`${initialState.end_date} ${initialState.end_time}`).toDate();
 
   periodicOptions: Option[] = [
     { name: 'Yesterday', value: 'yesterday' },
