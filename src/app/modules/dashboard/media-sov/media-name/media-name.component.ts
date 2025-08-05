@@ -15,11 +15,12 @@ import { InputTextareaModule } from 'primeng/inputtextarea';
 import { InputTextModule } from 'primeng/inputtext';
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
+import { PaginatorModule } from 'primeng/paginator';
 
 @Component({
   selector: 'app-media-name',
   standalone: true,
-  imports: [IconMicComponent, IconInfoComponent, ScrollerModule, CommonModule, ImgFallbackDirective, SpinnerComponent, CommonModule, InputTextModule, InputTextareaModule, ReactiveFormsModule, FormsModule],
+  imports: [IconMicComponent, IconInfoComponent, ScrollerModule, CommonModule, ImgFallbackDirective, SpinnerComponent, CommonModule, InputTextModule, InputTextareaModule, ReactiveFormsModule, FormsModule, PaginatorModule],
   templateUrl: './media-name.component.html',
   styleUrl: './media-name.component.scss',
 })
@@ -38,6 +39,12 @@ export class MediaNameComponent {
     field: 'title',
   });
 
+
+  // Pagination properties
+  // page: number = 1;
+  pageSize: number = 20; // Default page size
+  first: number = 0; // For PrimeNG paginator (0-based index)
+
   @Input() setMedia: any;
 
   constructor(
@@ -47,22 +54,61 @@ export class MediaNameComponent {
     private fb: FormBuilder
   ) {}
 
+  // fetchData = (filter: FilterRequestPayload, isSearch: boolean) => {
+  //   this.isLoading = true;
+  //   this.mediaSOVService
+  //     .getMedias({...this.filterService.filter, ...filter, term: this.searchForm.get('query')?.value ?? ''})
+  //     .subscribe(({ data, meta }) => {
+  //       // if the fetch data come from search form
+  //       if(isSearch){
+  //         this.medias = data;
+  //       } else {
+  //         this.medias = [...this.medias, ...data].filter((v) => v.doc_count > 0);
+  //       }
+  //       if (this.page === 1 && data.length > 0) {
+  //       this.setMedia(data[0]);
+  //       this.selectedMedia = data[0]; // <-- make sure selectedMedia is also set
+  //     }
+  //       this.page = this.page + 1;
+  //       this.total = meta.total_data;
+  //     })
+  //     .add(() => {
+  //       this.isLoading = false;
+  //     });
+  // };
+
+  onPageChange(event: any) {
+    this.page = event.page + 1; // Convert from 0-based to 1-based
+    this.pageSize = event.rows;
+    this.first = event.first;
+    
+    // Fetch data for the new page
+    this.fetchData({ 
+      ...this.filterService.filter, 
+      page: this.page,
+      term: this.searchForm.get('query')?.value ?? ''
+    }, true);
+  }
+
   fetchData = (filter: FilterRequestPayload, isSearch: boolean) => {
     this.isLoading = true;
     this.mediaSOVService
-      .getMedias({...this.filterService.filter, ...filter, term: this.searchForm.get('query')?.value ?? ''})
+      .getMedias({
+        ...this.filterService.filter, 
+        ...filter, 
+        term: this.searchForm.get('query')?.value ?? '',
+        limit: this.pageSize // Add page size to API call
+      })
       .subscribe(({ data, meta }) => {
-        // if the fetch data come from search form
-        if(isSearch){
-          this.medias = data;
-        } else {
-          this.medias = [...this.medias, ...data].filter((v) => v.doc_count > 0);
-        }
+        // Always replace data for pagination (no more appending)
+        this.medias = data.filter((v) => v.doc_count > 0);
+        
+        // Set first media as selected only on page 1 and when there's data
         if (this.page === 1 && data.length > 0) {
-        this.setMedia(data[0]);
-        this.selectedMedia = data[0]; // <-- make sure selectedMedia is also set
-      }
-        this.page = this.page + 1;
+          this.setMedia(data[0]);
+          this.selectedMedia = data[0];
+        }
+        
         this.total = meta.total_data;
       })
       .add(() => {

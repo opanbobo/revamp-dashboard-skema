@@ -8,7 +8,7 @@
     <input type="text" pInputText placeholder="Search" class="p-inputtext-sm max-w-17rem" [formControl]="searchForm.controls['query']"/>
     <i class="pi pi-search"></i>
   </span>
-  <spinner [spinning]="isLoading">
+  <!-- <spinner [spinning]="isLoading">
     <div style="height: 700px" class="overflow-auto" (scroll)="onLazyLoad($event)">
       <div
         *ngFor="let item of influencerCount"
@@ -47,6 +47,45 @@
         {{ total }}
         <span class="text-color-secondary">Spokeperson</span>
       </p>
+    </div>
+  </spinner> -->
+
+  <spinner [spinning]="isLoading">
+    <div style="height: 700px" class="overflow-auto">
+      <div *ngFor="let item of influencerCount" class="grid grid-nogutter cursor-pointer" [ngClass]="{
+        ' border-left-3 border-primary bg-gray-100': item.spokesperson_name === selectedInfluencer?.spokesperson_name,
+      }" (click)="onClick(item)">
+        <div class="col-12">
+          <div class="flex align-items-center py-1 gap-3">
+            <div class="w-4rem pl-1">
+              <img [src]="item.image_url" [alt]="item.spokesperson_name" class="h-4rem w-full border-round"
+                style="object-fit: cover" imgFallback="https://placehold.co/600x400?text=No+Image+Available" />
+            </div>
+            <div class="flex flex-column justify-content-between align-items-center flex-1">
+              <div class="flex flex-column">
+                <div class="text-sm font-semibold white-space-nowrap text-overflow-ellipsis overflow-hidden"
+                  style="width: 140px">
+                  {{ item.spokesperson_name }}
+                </div>
+                <p class="white-space-nowrap overflow-hidden text-overflow-ellipsis p-0 mt-1" style="width: 140px">
+                  {{ item.doc_count }}
+                  <span class="text-color-secondary">Articles</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pagination Component -->
+    <div class="flex justify-content-between align-items-center mt-3">
+      <div class="flex align-items-center justify-content-start text-xs">
+        <p-paginator (onPageChange)="onPageChange($event)" [first]="first" [rows]="pageSize" [totalRecords]="total"
+          [showFirstLastIcon]="false" [showPageLinks]="false" [showCurrentPageReport]="true"
+          currentPageReportTemplate="{first} - {last} of {totalRecords}" styleClass="text-xs">
+        </p-paginator>
+      </div>
     </div>
   </spinner>
 </div>

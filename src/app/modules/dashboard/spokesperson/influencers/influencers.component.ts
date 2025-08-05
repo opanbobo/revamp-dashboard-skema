@@ -19,11 +19,12 @@ import { InfluencerService } from '../../../../core/services/influencer.service'
 import { setInfluencer } from '../../../../core/store/spokesperson/spokesperson.actions';
 import { InputTextModule } from 'primeng/inputtext';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { PaginatorModule } from 'primeng/paginator';
 
 @Component({
   selector: 'app-influencers',
   standalone: true,
-  imports: [IconMicComponent, IconInfoComponent, ScrollerModule, CommonModule, ImgFallbackDirective, SpinnerComponent, InputTextModule, ReactiveFormsModule],
+  imports: [IconMicComponent, IconInfoComponent, ScrollerModule, CommonModule, ImgFallbackDirective, SpinnerComponent, InputTextModule, ReactiveFormsModule, PaginatorModule],
   templateUrl: './influencers.component.html',
   styleUrl: './influencers.component.scss',
 })
@@ -42,6 +43,9 @@ export class InfluencersComponent {
     field: 'title',
   });
 
+  pageSize: number = 20; // Default page size
+  first: number = 0; // For PrimeNG paginator (0-based index)
+
   selectedInfluencer: InfluencerCount | null = null;
 
   constructor(
@@ -55,29 +59,68 @@ export class InfluencersComponent {
 
   @Input() setInfluencer: any;
 
-  fetchData = (filter: FilterRequestPayload, isSearch: boolean) => {
-    this.isLoading = true;
-    this.influencerService
-      .getSpokepersons({...this.filterService.filter, ...filter, term: this.searchForm.get('query')?.value ?? ''})
-      // @ts-ignore
-      .subscribe(({ data, meta }) => {
-        // if the fetch data come from search form
-        if(isSearch){
-          this.influencerCount = data;
-        } else {
-          this.influencerCount = [...this.influencerCount, ...data].filter((v) => v.doc_count > 0);
-        }
+  onPageChange(event: any) {
+    this.page = event.page + 1; // Convert from 0-based to 1-based
+    this.pageSize = event.rows;
+    this.first = event.first;
+    
+    // Fetch data for the new page
+    this.fetchData({ 
+      ...this.filterService.filter, 
+      page: this.page,
+      term: this.searchForm.get('query')?.value ?? ''
+    }, true);
+  }
 
-        if (this.page === 1) {
-          this.setInfluencer(data[0].spokesperson_name);
-        }
-        this.page = this.page + 1;
-        this.total = meta.total_data;
-      })
-      .add(() => {
-        this.isLoading = false;
-      });
-  };
+  fetchData = (filter: FilterRequestPayload, isSearch: boolean) => {
+  this.isLoading = true;
+  this.influencerService
+    .getSpokepersons({
+      ...this.filterService.filter,
+      ...filter,
+      term: this.searchForm.get('query')?.value ?? '',
+      limit: this.pageSize // Add page size to API call
+    })
+    // @ts-ignore
+    .subscribe(({ data, meta }) => {
+      // Always replace data for pagination (no more appending)
+      this.influencerCount = data.filter((v) => v.doc_count > 0);
+
+      // Set first influencer only on page 1 and when there's data
+      if (this.page === 1 && data.length > 0) {
+        this.setInfluencer(data[0].spokesperson_name);
+      }
+
+      this.total = meta.total_data;
+    })
+    .add(() => {
+      this.isLoading = false;
+    });
+};
+
+  // fetchData = (filter: FilterRequestPayload, isSearch: boolean) => {
+  //   this.isLoading = true;
+  //   this.influencerService
+  //     .getSpokepersons({...this.filterService.filter, ...filter, term: this.searchForm.get('query')?.value ?? ''})
+  //     // @ts-ignore
+  //     .subscribe(({ data, meta }) => {
+  //       // if the fetch data come from search form
+  //       if(isSearch){
+  //         this.influencerCount = data;
+  //       } else {
+  //         this.influencerCount = [...this.influencerCount, ...data].filter((v) => v.doc_count > 0);
+  //       }
+
+  //       if (this.page === 1) {
+  //         this.setInfluencer(data[0].spokesperson_name);
+  //       }
+  //       this.page = this.page + 1;
+  //       this.total = meta.total_data;
+  //     })
+  //     .add(() => {
+  //       this.isLoading = false;
+  //     });
+  // };
 
   ngOnInit() {
     this.filter = this.filterService.subscribe((filter) => {
