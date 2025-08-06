@@ -15,6 +15,8 @@ import { SpinnerComponent } from '../../../../core/components/spinner/spinner.co
 import { initialState } from '../../../../core/store/filter/filter.reducer';
 import { ImgFallbackDirective } from '../../../../core/directive/img-fallback.directive';
 import { RouterLink } from '@angular/router';
+import { FilterService } from '../../../../core/services/filter.service';
+import { ArticleService } from '../../../../core/services/article.service';
 
 @Component({
   selector: 'app-featured-news',
@@ -33,19 +35,36 @@ export class FeaturedNewsComponent {
 
   articles: Article[] = [];
 
-  constructor(private store: Store<AppState>) {
+  constructor(
+    private store: Store<AppState>,
+    private filterService: FilterService,
+    private articleService: ArticleService
+  ) {
     this.analyzeState = this.store.select(selectAnalyzeState);
   }
 
   ngOnInit() {
-    this.store.dispatch(
-      getArticlesByTone({
-        filter: { ...initialState, tone: 0 } as FilterRequestPayload,
-      })
-    );
-    this.analyzeState.subscribe(({ articlesByTone }) => {
-      this.articles = articlesByTone.data;
-      this.isLoading = articlesByTone.isLoading;
+    // this.store.dispatch(
+    //   getArticlesByTone({
+    //     filter: { ...initialState, tone: 0 } as FilterRequestPayload,
+    //   })
+    // );
+    // this.analyzeState.subscribe(({ articlesByTone }) => {
+    //   this.articles = articlesByTone.data;
+    //   this.isLoading = articlesByTone.isLoading;
+    // });
+
+    this.filter = this.filterService.subscribe((filter) => {
+      this.isLoading = true;
+
+      this.articleService
+        .getArticlesByTone(filter)
+        .subscribe((data) => {
+          this.articles = data.data;
+        })
+        .add(() => {
+          this.isLoading = false;
+        });
     });
   }
 }

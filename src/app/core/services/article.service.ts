@@ -24,6 +24,7 @@ export class ArticleService {
       page: 1,
       media_id: filter.media_id ?? '',
       category_set: filter.category_set ?? '',
+      category_id: filter.category_id ?? '',
       user_media_type_id: filter.user_media_type_id ?? '',
       tone: filter.tone ?? '',
     };
@@ -81,6 +82,7 @@ export class ArticleService {
   getArticlesByTone(filter: FilterRequestPayload): Observable<ArticleResponse> {
     return this.http.post<ArticleResponse>(`${this.baseUrl}/v1/dashboard/article-by-tone`, {
       ...filter,
+      tone: filter.tone ?? 0,
       media_id: filter.media_id ?? 0,
       page: filter.page ?? 0,
       maxSize: filter.maxSize ?? undefined,
