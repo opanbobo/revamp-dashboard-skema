@@ -54,7 +54,7 @@ export class ArticlesByToneComponent {
       this.mediaId = +mediaId;
       this.mediaName = mediaName;
       this.tone = +tone;
-      this.category_id = categoryName;
+      // this.category_id = categoryName;
       this.date = date;
       this.toneLabel = TONE_MAP[tone];
       this.filter = this.filterService.subscribe((filter) => {
@@ -70,7 +70,7 @@ export class ArticlesByToneComponent {
       ...filter,
       media_id: this?.mediaId ?? 0,
       tone: this?.tone ?? 0,
-      category_id: this.category_id ?? 'all',
+      // category_id: this.category_id ?? 'all',
       start_date: this.date ? moment(this.date).format('YYYY-MM-DD') : filter.start_date,
       end_date: this.date ? moment(this.date).format('YYYY-MM-DD') : filter.end_date,
     };
