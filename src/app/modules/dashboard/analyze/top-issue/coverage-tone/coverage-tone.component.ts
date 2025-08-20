@@ -336,10 +336,12 @@ export class CoverageToneComponent {
       '-1': documentStyle.getPropertyValue('--negative-color'),
     };
 
-    const sortedTones = tones.chart_bar;
+    // Only keep keys we care about: 1 (positive), -1 (negative), 0 (neutral)
+    const validKeys = [1, -1, 0];
+    const filteredTones = tones.chart_bar.filter(v => validKeys.includes(v.key));
 
-    // Sort the chart_bar array based on the desired order (1, -1, 0)
-    sortedTones.sort((a, b) => {
+    // Sort in desired order: 1, -1, 0
+    const sortedTones = filteredTones.sort((a, b) => {
       if (a.key === 1) return -1;
       if (b.key === 1) return 1;
       if (a.key === -1 && b.key === 0) return -1;
@@ -347,15 +349,18 @@ export class CoverageToneComponent {
       return 0;
     });
 
-    const totalTones = tones.chart_bar.reduce((prev, chart) => prev + chart.doc_count, 0); // prettier-ignore
+    const totalTones = filteredTones.reduce((prev, chart) => prev + chart.doc_count, 0);
+
     return {
       tones: [POSITIVE_TONE, NEGATIVE_TONE, NEUTRAL_TONE],
       labels: [TONE_MAP[POSITIVE_TONE], TONE_MAP[NEGATIVE_TONE], TONE_MAP[NEUTRAL_TONE]],
       datasets: [
         {
-          data: sortedTones.map((v) => v.doc_count),
-          backgroundColor: sortedTones.map((v) => colors[v.key.toString()]),
-          percentages: sortedTones.map((v) => ((v.doc_count / totalTones) * 100).toFixed(0)),
+          data: sortedTones.map(v => v.doc_count),
+          backgroundColor: sortedTones.map(v => colors[v.key.toString()]),
+          percentages: sortedTones.map(v => (
+            totalTones > 0 ? ((v.doc_count / totalTones) * 100).toFixed(0) : '0'
+          )),
         },
       ],
     };
