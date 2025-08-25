@@ -219,6 +219,7 @@ export class MediaListComponent {
   }
 
   openEditModal(media: Media, type: string) {
+    this.isLoading = true;
     this.type = type;
     this.listSelected = [];
     this.selectedMedia = media;
@@ -231,7 +232,9 @@ export class MediaListComponent {
         label: 'Select All',
         data: 'all',
         children: res.data.map((v) => {
+          const label = v.media_type;
           const node: TreeNode = {
+
             label: v.media_type,
             data: v.media_type,
             children: v.media_list.map((v) => {
@@ -245,7 +248,8 @@ export class MediaListComponent {
                 (type == 'pers' && v.is_dewan_pers) || 
                 (type == 'international' && v.is_international) || 
                 (type == 'national' && v.is_national) ||
-                (type == 'language' && v.language === 'IND')
+                (type == 'language' && v.language === 'IND') ||
+                (type == 'online-ind' && v.language === 'IND' && label === 'Berita Online') 
               ) {
                 this.listSelected.push(child);
               }
@@ -261,6 +265,8 @@ export class MediaListComponent {
       this.listMediaGroup = [node];
       this.showUpdateModal = true;
       setTimeout(() => this.preSelectNode(node));
+
+      this.isLoading = false;
     });
   }
 
