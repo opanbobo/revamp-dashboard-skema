@@ -86,7 +86,7 @@ export class MapComponent {
   }
 
   ngAfterViewInit(): void {
-    this.fetchCitiesCount(this.filter);
+    // this.fetchCitiesCount(this.filter);
   }
 
   navigateInsideZone(article_id: string) {
@@ -260,7 +260,7 @@ export class MapComponent {
 
   addCitiesGeoJSONLayer(filter: any, data: AllCount): void {
     const getDataByLocation = (featureName: string) => {
-      return data.data.find((location) => 
+      return data.data.find((location) =>
         location.key.toUpperCase() === featureName?.toUpperCase()
       );
     };
@@ -387,16 +387,18 @@ export class MapComponent {
   }
 
   onFilterTypeChange = (type_location: string) => {
-    if (this.geoJsonLayer) {
-      this.geoJsonLayer.removeFrom(this.map!);
-    }
+    // if (this.geoJsonLayer) {
+    //   this.geoJsonLayer.removeFrom(this.map!);
+    // }
+    this.clearMapLayers();
     this.fetchProvinceCount({ ...this.filterService.filter, type_location });
   };
 
   onFilterChange = (filterState: FilterState) => {
-    if (this.geoJsonLayer) {
-      this.geoJsonLayer.removeFrom(this.map!);
-    }
+    // if (this.geoJsonLayer) {
+    //   this.geoJsonLayer.removeFrom(this.map!);
+    // }
+    this.clearMapLayers();
     this.fetchProvinceCount(filterState);
     this.fetchCitiesCount(filterState);
   };
@@ -431,4 +433,45 @@ export class MapComponent {
     this.selectedLayerProv = provinceLayer!;
 
   }
+
+  clearMapLayers() {
+    if (!this.map) return;
+
+    this.isLoadingArticles = true;
+
+    // Remove any existing GeoJSON layer from map
+    if (this.geoJsonLayer) {
+      this.geoJsonLayer.removeFrom(this.map);
+      this.geoJsonLayer = null;
+    }
+
+    // Remove all individual province layers
+    this.provinceLayers.forEach(layer => {
+      if (this.map?.hasLayer(layer)) {
+        this.map.removeLayer(layer);
+      }
+    });
+    this.provinceLayers.clear();
+
+    // Remove all city layers
+    this.citiesLayers.forEach(layer => {
+      if (this.map?.hasLayer(layer)) {
+        this.map.removeLayer(layer);
+      }
+    });
+    this.citiesLayers.clear();
+
+    // Remove all city layer groups
+    this.citiesLayersByProvince.forEach(group => {
+      if (this.map?.hasLayer(group)) {
+        this.map.removeLayer(group);
+      }
+    });
+    this.citiesLayersByProvince.clear();
+
+    // Reset selected province/city tracking
+    this.selectedGroupCities = null;
+    this.selectedLayerProv = null;
+  }
+
 }
