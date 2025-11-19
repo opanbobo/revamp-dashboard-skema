@@ -78,6 +78,8 @@ export class UserListComponent {
     query: ''
   });
 
+  customLevelId: number | null = null;
+
   constructor(
     private adminService: AdminService,
     private fb: FormBuilder,
@@ -123,10 +125,18 @@ export class UserListComponent {
   }
 
   fetchUserLevels = () => {
-    this.adminService.fetchUserLevels().subscribe((res) => {
-      this.userLevels = res;
-    });
-  }
+  this.adminService.fetchUserLevels().subscribe((res) => {
+    this.userLevels = res;
+
+    const customLevel = this.userLevels.find(
+      (lvl: any) => lvl.level_name === 'Custom'
+    );
+
+    this.customLevelId = customLevel?.id ?? null;
+
+    console.log('Custom Level ID:', this.customLevelId);
+  });
+};
 
   onPageChange = (e: PaginatorState) => {
     console.log(e.page, e.rows, e.first);
