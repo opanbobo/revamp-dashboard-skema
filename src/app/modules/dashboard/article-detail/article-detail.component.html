@@ -40,6 +40,10 @@
             <span class="font-semibold">News Value:</span>
             {{ article?.advalue_bw ?? 0 | formatAmount }}
           </div>
+          <div>
+            <span class="font-semibold">Media Tier:</span>
+            {{ article?.media_tier ?? '-' }}
+          </div>
         </div>
         <p-divider layout="vertical"></p-divider>
         <div class="text-sm">

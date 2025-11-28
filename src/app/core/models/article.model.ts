@@ -23,6 +23,7 @@ export interface Article {
   image_url?: string;
   preview_link?: string;
   media_type?: string;
+  media_tier?: string;
   location?: string;
   advalue_bw?: number;
   advalue_fc?: number;
