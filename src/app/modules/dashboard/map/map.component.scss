@@ -1,9 +1,149 @@
 .custom-city-label {
-    font-size: 14px; /* Adjust font size */
-    font-weight: bold;
-    color: #333; /* Text color */
-    background: rgba(255, 255, 255, 0.8); /* Background with some opacity */
-    border-radius: 4px; /* Rounded corners */
-    padding: 2px 4px; /* Padding inside the label */
-    box-shadow: 0 0 3px rgba(0, 0, 0, 0.3); /* Optional shadow */
+  font-size: 14px;
+  font-weight: bold;
+  color: #333;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+  padding: 2px 4px;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+.leaflet-tooltip {
+  padding: 2px 4px !important;
+}
+
+.draggable-tooltip {
+  font-size: 6px !important;
+  padding: 2px 4px !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid #ccc !important;
+  border-radius: 3px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+  pointer-events: auto !important;
+  transition: box-shadow 0.2s ease, opacity 0.2s ease !important;
+  user-select: none !important;
+  min-width: 30px !important;
+  text-align: center;
+  cursor: default;
+  z-index: 600 !important;
+  line-height: 1.2 !important;
+  transform: translate(0px, 0px);
+}
+
+.draggable-tooltip.province-tooltip {
+  font-size: 6px !important;
+  font-weight: 600 !important;
+}
+
+.draggable-tooltip.city-tooltip {
+  font-size: 6px !important;
+  font-weight: 500 !important;
+}
+
+.draggable-tooltip.drag-enabled {
+  cursor: move !important;
+  box-shadow: 0 0 0 1px #3b82f6, 0 1px 3px rgba(59, 130, 246, 0.4) !important;
+  z-index: 700 !important;
+}
+
+.draggable-tooltip.dragging {
+  opacity: 0.85 !important;
+  z-index: 9999 !important;
+  box-shadow: 0 0 0 2px #3b82f6, 0 2px 6px rgba(59, 130, 246, 0.4) !important;
+  transition: none !important;
+}
+
+.draggable-tooltip.leaflet-tooltip:before {
+  border: none !important;
+  display: none !important;
+}
+
+.info-tooltip {
+  position: absolute;
+  background: white;
+  border: 1px solid #ccc;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 1000;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translate(-50%, -120%);
+}
+
+.info-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: white transparent transparent transparent;
+}
+
+.reset-tooltips-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  padding: 8px 16px;
+  background: white;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.reset-tooltips-btn:hover {
+  background: #f0f0f0;
+  border-color: #999;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.reset-tooltips-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.drag-mode-indicator {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  padding: 8px 16px;
+  background: rgba(59, 130, 246, 0.95);
+  color: white;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.drag-mode-indicator.active {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .draggable-tooltip {
+    font-size: 7px !important;
+    padding: 1px 3px !important;
+    min-width: 35px !important;
   }
+
+  .draggable-tooltip.province-tooltip {
+    font-size: 7px !important;
+  }
+
+  .draggable-tooltip.city-tooltip {
+    font-size: 6px !important;
+  }
+}
