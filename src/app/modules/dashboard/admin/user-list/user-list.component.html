@@ -155,7 +155,7 @@
                 <div class="col-6">
                     <div class="flex flex-column gap-2">
                         <label class="font-semibold" for="level_menu">User Level</label>
-                        <p-dropdown formControlName="level_menu" [options]="userLevels" styleClass="w-full"
+                        <p-dropdown formControlName="level_menu" appendTo="body" [options]="userLevels" styleClass="w-full"
                             class="text-xs" optionLabel="level_name" optionValue="id" [filter]="true"
                             filterBy="level_name" [showClear]="true" placeholder="Select User level">
                         </p-dropdown>
