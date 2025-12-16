@@ -81,6 +81,7 @@ export class DashboardComponent implements OnInit {
     'articles': 'Article',
     'share': 'Share',
     'search': 'Search',
+    'epaper': 'E-Paper',
     'admin': 'Admin',
   };
 
@@ -143,6 +144,11 @@ export class DashboardComponent implements OnInit {
       {
         label: 'Social Media Index',
         routerLink: 'social-media-index',
+        icon: '../../../assets/icons/person-search.svg',
+      },
+      {
+        label: 'E-Paper',
+        routerLink: 'epaper',
         icon: '../../../assets/icons/person-search.svg',
       },
       {

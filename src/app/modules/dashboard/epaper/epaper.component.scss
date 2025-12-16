@@ -1,0 +1,212 @@
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.epaper-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.25rem;
+    width: 100%;
+    
+    // Alternative fixed columns (for more control)
+    // @media (max-width: 576px) {
+    //     grid-template-columns: repeat(2, 1fr);
+    // }
+    
+    // @media (min-width: 576px) and (max-width: 768px) {
+    //     grid-template-columns: repeat(3, 1fr);
+    // }
+    
+    // @media (min-width: 768px) and (max-width: 992px) {
+    //     grid-template-columns: repeat(4, 1fr);
+    // }
+    
+    // @media (min-width: 992px) and (max-width: 1200px) {
+    //     grid-template-columns: repeat(5, 1fr);
+    // }
+    
+    // @media (min-width: 1200px) {
+    //     grid-template-columns: repeat(6, 1fr);
+    // }
+}
+
+.epaper-card {
+    min-height: 320px;
+    width: 100%;
+    
+    .book-card {
+        background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+        border: 1px solid #e2e8f0;
+        min-height: 320px;
+        transition: transform 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+        
+        &:hover {
+            transform: translateY(-8px);
+            border-color: var(--primary-color);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+    }
+    
+    .book-cover-container {
+        position: relative;
+        width: 100%;
+        padding-top: 140%; /* Creates 5:7 book ratio (like 5x7 inches) */
+        
+        .book-cover-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            perspective: 1000px;
+            
+            .book-cover-image {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                border-radius: 4px 8px 8px 4px; /* Book-like rounded corners */
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                transition: all 0.3s ease;
+                
+                &:hover {
+                    transform: scale(1.02);
+                    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+                }
+            }
+            
+            .book-spine {
+                position: absolute;
+                left: 0;
+                top: 5%;
+                width: 6px;
+                height: 90%;
+                background: linear-gradient(to right, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.05) 100%);
+                border-radius: 2px 0 0 2px;
+                z-index: 1;
+            }
+        }
+    }
+    
+    .book-info {
+        padding: 0.5rem 0;
+        
+        .book-title {
+            min-height: 40px;
+            font-size: 0.9rem;
+            line-height: 1.3;
+            color: var(--surface-900);
+            font-weight: 600;
+        }
+        
+        .book-meta {
+            .book-author {
+                color: var(--surface-700);
+                font-weight: 500;
+            }
+            
+            .book-date {
+                color: var(--surface-600);
+                font-size: 0.75rem;
+            }
+        }
+        
+        .book-status {
+            margin-top: 0.75rem;
+            
+            span {
+                font-weight: 500;
+                letter-spacing: 0.3px;
+            }
+        }
+    }
+}
+
+// Alternative: Classic Book Cover Ratio (3:4)
+.book-cover-classic {
+    .book-cover-container {
+        padding-top: 133.33%; /* 3:4 ratio */
+    }
+    
+    .book-cover-image {
+        border-radius: 8px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    }
+}
+
+// Alternative: Magazine Style Ratio (4:5)
+.book-cover-magazine {
+    .book-cover-container {
+        padding-top: 125%; /* 4:5 ratio */
+    }
+    
+    .book-cover-image {
+        border-radius: 6px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.18);
+    }
+}
+
+// For placeholder images
+img[src*="placehold.co"] {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-family: 'Georgia', serif;
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.8rem;
+    line-height: 1.2;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+    .epaper-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+    }
+    
+    .epaper-card {
+        min-height: 280px;
+        
+        .book-cover-container {
+            padding-top: 135%; // Slightly different ratio on mobile
+        }
+        
+        .book-title {
+            font-size: 0.8rem;
+            min-height: 36px;
+        }
+    }
+}
+
+@media (max-width: 480px) {
+    .epaper-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+    
+    .epaper-card {
+        min-height: 260px;
+        
+        .book-cover-container {
+            padding-top: 140%;
+        }
+        
+        .book-card {
+            padding: 0.75rem;
+        }
+    }
+}
+
+:host {
+    display: block;
+    width: 100%;
+}
