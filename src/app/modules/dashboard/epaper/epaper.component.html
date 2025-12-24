@@ -11,83 +11,53 @@
     <div class="card mb-4">
         <div class="text-sm font-semibold mb-3">Pencarian Buku</div>
         <p-divider class="mb-3"></p-divider>
-        
+
         <form (ngSubmit)="onSearch()" class="grid">
-            <!-- Form fields remain the same -->
-            <div class="col-12 md:col-4">
+            <!-- Judul -->
+            <div class="col-12 md:col-8">
                 <div class="field">
-                    <label for="judul" class="block text-sm font-medium mb-2">Judul</label>
-                    <input pInputText 
-                           id="judul" 
-                           [(ngModel)]="searchForm.judul" 
-                           name="judul" 
-                           placeholder="Cari berdasarkan judul..."
-                           class="w-full" 
-                           [disabled]="true" />
+                    <label for="judul" class="block text-sm font-medium mb-2">
+                        Judul
+                    </label>
+                    <input pInputText id="judul" name="judul" [(ngModel)]="searchForm.judul"
+                        placeholder="Cari berdasarkan judul..." class="w-full ml-1" />
                 </div>
             </div>
-            
+
+            <!-- Buttons -->
             <div class="col-12 md:col-4">
                 <div class="field">
-                    <label for="tahun" class="block text-sm font-medium mb-2">Tahun</label>
-                    <p-dropdown [options]="tahunOptions" 
-                               [(ngModel)]="searchForm.tahun" 
-                               name="tahun"
-                               [showClear]="true"
-                               placeholder="Pilih Tahun"
-                               styleClass="w-full"
-                               [disabled]="true">
-                    </p-dropdown>
+                    <!-- spacer label to align height -->
+                    <label class="block text-sm font-medium mb-2">&nbsp;</label>
+
+                    <div class="flex gap-2 justify-content-end">
+                        <!-- <button pButton type="button" label="Reset" severity="secondary" class="p-button-outlined"
+                            (click)="onResetSearch()">
+                        </button> -->
+
+                        <button pButton type="submit" label="Cari" icon="pi pi-search">
+                        </button>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="col-12 md:col-4">
-                <div class="field">
-                    <label for="kategori" class="block text-sm font-medium mb-2">Kategori</label>
-                    <p-dropdown [options]="kategoriOptions" 
-                               [(ngModel)]="searchForm.kategori" 
-                               name="kategori"
-                               [showClear]="true"
-                               placeholder="Pilih Kategori"
-                               styleClass="w-full"
-                               [disabled]="true">
-                    </p-dropdown>
-                </div>
-            </div>
-            
-            <div class="col-12 flex justify-content-end gap-2 mt-3">
-                <button pButton 
-                        type="button" 
-                        label="Reset" 
-                        severity="secondary" 
-                        (click)="onResetSearch()"
-                        class="p-button-outlined"
-                        [disabled]="true"></button>
-                <button pButton 
-                        type="submit" 
-                        label="Cari" 
-                        icon="pi pi-search"
-                        [disabled]="true"></button>
             </div>
         </form>
     </div>
 
-    <p-divider></p-divider>
+    <!-- <p-divider></p-divider> -->
 
     <spinner [spinning]="isLoading" class="w-full">
-        <!-- Updated CSS Grid Container with book-style cards -->
-        <div class="epaper-grid mt-3">
+        <!-- EPAPER GRID -->
+        <div class="epaper-grid my-3" *ngIf="epapers && epapers.length > 0; else emptyState">
             <div *ngFor="let book of epapers" class="epaper-card">
-                <div class="book-card border-round-lg border-1 surface-border shadow-2 p-3 h-full flex flex-column cursor-pointer hover:shadow-5 transition-all duration-500"
-                    [routerLink]="['/dashboard/epaper', book.id]">
-                    <!-- Book Cover Image -->
+                <div class="book-card app-card border-round-lg border-1 shadow-2 p-3 h-full flex flex-column cursor-pointer hover:shadow-5 transition-all duration-500"
+                    (click)="openPdf(book)">
+
+                    <!-- Book Cover -->
                     <div class="book-cover-container mb-3">
                         <div class="book-cover-wrapper">
-                            <img [src]="book.thumbnail_url" [alt]="book.title" 
-                                 class="book-cover-image"
-                                 onerror="this.src='https://placehold.co/600x800/4a5568/ffffff?text=No+Cover&font=playfair'"
-                                 [title]="book.title" />
-                            <!-- Optional: Book spine effect -->
+                            <img [src]="book.thumbnail_url" [alt]="book.title" class="book-cover-image"
+                                onerror="this.src='https://placehold.co/600x800/4a5568/ffffff?text=No+Cover&font=playfair'"
+                                [title]="book.title" />
                             <div class="book-spine"></div>
                         </div>
                     </div>
@@ -98,37 +68,49 @@
                             {{ book.title }}
                         </h4>
 
-                        <div class="book-meta text-xs text-500">
+                        <div class="book-meta text-xs">
                             <div class="book-author mb-1">
                                 <span class="font-medium">{{ book.media_name }}</span>
                             </div>
-                            <div class="book-date text-500">
+                            <div class="book-date">
                                 {{ book.date | date: 'dd MMM yyyy' }}
                             </div>
-                        </div>
-                        
-                        <!-- Status Badge -->
-                        <div class="book-status mt-2">
-                            <span class="inline-block px-2 py-1 border-round-sm text-xs"
-                                [ngClass]="book.file_url ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'">
-                                {{ book.file_url ? 'Tersedia' : 'Tidak Tersedia' }}
-                            </span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <p-divider></p-divider>
+        <!-- EMPTY STATE -->
+        <ng-template #emptyState>
+            <div class="flex flex-column align-items-center justify-content-center py-6 text-center">
+                <i class="pi pi-info-circle text-4xl mb-3 text-color-secondary"></i>
 
-        <p-paginator (onPageChange)="onPageChange($event)" [first]="first" [rows]="rows" [totalRecords]="totalRecords"
-            [templateLeft]="customLeftTemplate" [showFirstLastIcon]="false" styleClass="p-0 w-full">
+                <div class="text-sm font-semibold mb-1">
+                    Tidak ada data
+                </div>
+
+                <div class="text-xs text-color-secondary">
+                    Tidak ditemukan epaper dengan kriteria pencarian saat ini.
+                </div>
+            </div>
+        </ng-template>
+
+
+        <!-- <p-divider></p-divider> -->
+
+        <p-paginator [first]="first" [rows]="rows" [totalRecords]="totalRecords" [rowsPerPageOptions]="[5, 10, 20, 50]"
+            [showFirstLastIcon]="false" styleClass="p-0 w-full" (onPageChange)="onPageChange($event)"
+            [templateLeft]="customLeftTemplate">
+
             <ng-template #customLeftTemplate let-state>
                 <span class="text-sm text-color">Total Epaper:</span>
                 <span class="text-sm text-color font-semibold">
                     {{ state.totalRecords }}
                 </span>
             </ng-template>
+
         </p-paginator>
+
     </spinner>
 </section>

@@ -18,13 +18,15 @@ export class EpaperService {
     page: number = 1,
     limit: number = 10,
     sort: 'asc' | 'desc' = 'desc',
-    sortBy: string = 'date'
+    sortBy: string = 'date',
+    search: string = ''
   ): Observable<EpaperResponse> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('limit', limit.toString())
       .set('sort', sort)
-      .set('sort_by', sortBy);
+      .set('sort_by', sortBy)
+      .set('search', search);
 
     return this.http.get<EpaperResponse>(this.epapersUrl, { params });
   }

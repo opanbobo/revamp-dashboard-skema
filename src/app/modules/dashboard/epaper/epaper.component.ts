@@ -27,7 +27,7 @@ import { ButtonModule } from 'primeng/button';
     SpinnerComponent,
     CommonModule,
     RouterModule,
-    FormsModule, // Keep for disabled form
+    FormsModule,
     InputTextModule,
     DropdownModule,
     ButtonModule,
@@ -41,17 +41,16 @@ export class EpaperComponent implements OnInit {
   isLoading = false;
   epapers: Epaper[] = [];
   first = 0;
-  rows = 10;
+  rows = 20;
   totalRecords = 0;
   currentPage = 1;
 
-  // Add these back for the template (even though they're not functional)
   searchForm = {
     judul: '',
     tahun: null as number | null,
     kategori: null as string | null
   };
-  
+
   tahunOptions: any[] = [];
   kategoriOptions: any[] = [];
 
@@ -74,7 +73,7 @@ export class EpaperComponent implements OnInit {
   loadData(page = 1) {
     this.isLoading = true;
     this.currentPage = page;
-    
+
     this.epaperService.getEpapers(page, this.rows).subscribe({
       next: (res) => this.handleResponse(res),
       error: (error) => this.handleError(error)
@@ -106,19 +105,67 @@ export class EpaperComponent implements OnInit {
     this.isLoading = false;
   }
 
-  onPageChange(event: any) {
-    this.first = event.first;
-    this.rows = event.rows;
-    const page = event.first / event.rows + 1;
-    this.loadData(page);
+  openPdf(epaper: Epaper): void {
+    if (!epaper.file_url) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Tidak tersedia',
+        detail: 'File PDF tidak tersedia.'
+      });
+      return;
+    }
+
+    window.open(epaper.file_url, '_blank', 'noopener');
   }
 
-  // These methods are just placeholders for the UI (non-functional)
-  onSearch() {
-    // Empty method - search is disabled
+
+  onPageChange(event: any): void {
+    this.first = event.first;
+    this.rows = event.rows;
+
+    const page = event.page + 1;
+    const keyword = (this.searchForm.judul || '').trim();
+
+    this.isLoading = true;
+
+    this.epaperService
+      .getEpapers(
+        page,
+        this.rows,
+        'desc',
+        'date',
+        keyword
+      )
+      .subscribe({
+        next: (res) => this.handleResponse(res),
+        error: (error) => this.handleError(error)
+      });
+  }
+
+
+  onSearch(): void {
+    this.first = 0;
+    this.currentPage = 1;
+
+    const keyword = (this.searchForm.judul || '').trim();
+
+    this.isLoading = true;
+
+    this.epaperService
+      .getEpapers(
+        1,
+        this.rows,
+        'desc',
+        'date',
+        keyword
+      )
+      .subscribe({
+        next: (res) => this.handleResponse(res),
+        error: (error) => this.handleError(error)
+      });
   }
 
   onResetSearch() {
-    // Empty method - search is disabled
+
   }
 }
