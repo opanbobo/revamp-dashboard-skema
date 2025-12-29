@@ -27,6 +27,7 @@ export class ArticleService {
       category_id: filter.category_id ?? '',
       user_media_type_id: filter.user_media_type_id ?? '',
       tone: filter.tone ?? '',
+      media_tier: filter.media_tier ?? '',
     };
 
     return this.http.get<HighlightsResponse>(`${this.baseUrl}/v3/media-sov/latest-articles`, {
@@ -198,6 +199,7 @@ export class ArticleService {
       sentiments: sentiments,
       article_ids : article_ids,
       search: search ?? '',
+      media_tier: filter.media_tier ?? '',
     };
     return this.http.get<any>(`${this.baseUrl}/v3/user/editing/download`, { params });
   }
@@ -234,6 +236,7 @@ export class ArticleService {
       category_set: filter.category_set ?? '',
       user_media_type_id: filter.user_media_type_id ?? '',
       tone: filter.tone ?? '',
+      media_tier: filter.media_tier ?? '',
     };
 
     return this.http.get<{ data: Article[] }>(`${this.baseUrl}/v1/dashboard/article-headlines`, { params });
@@ -250,6 +253,7 @@ export class ArticleService {
       category_id: filter.category_id ?? '',
       user_media_type_id: filter.user_media_type_id ?? '',
       tone: filter.tone ?? '',
+      media_tier: filter.media_tier ?? '',
     };
 
     return this.http.get<{ data: Article[] }>(`${this.baseUrl}/v1/dashboard/top-articles`, { params });

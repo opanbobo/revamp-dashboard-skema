@@ -24,7 +24,8 @@ export class MediaSOVService {
       category_set: filter.category_set ?? '',
       user_media_type_id: filter.user_media_type_id ?? '',
       search: filter.term ?? '',
-      category_id: filter.category_id ?? ''
+      category_id: filter.category_id ?? '',
+      media_tier: filter.media_tier ?? '',
     };
 
     return this.http.get<{
@@ -49,6 +50,7 @@ export class MediaSOVService {
       user_media_type_id: filter.user_media_type_id ?? '',
       tone: filter.tone ?? '',
       category_id: filter.category_id ?? '',
+      media_tier: filter.media_tier ?? '',
     };
 
     console.log('params', params);
@@ -66,6 +68,7 @@ export class MediaSOVService {
       category_set: filter.category_set ?? '',
       user_media_type_id: filter.user_media_type_id ?? '',
       category_id: filter.category_id ?? '',
+      media_tier: filter.media_tier ?? '',
     };
 
     return this.http.get<{ data: MediaTone }>(`${this.baseUrl}/v3/media-sov/media-tones`, { params });
