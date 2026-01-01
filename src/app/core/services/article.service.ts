@@ -7,6 +7,7 @@ import { CategoryResponse } from '../models/category.model';
 import { HighlightsResponse } from '../models/highlights.model';
 import { FilterRequestPayload } from '../models/request.model';
 import { BASE_URL } from './../api/index';
+import { generateNonce, generateSignature, generateTimestamp } from '../../shared/utils/SignatureUtils';
 
 @Injectable({
   providedIn: 'root',
@@ -14,7 +15,7 @@ import { BASE_URL } from './../api/index';
 export class ArticleService {
   private baseUrl = BASE_URL;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   getHighlights(filter: FilterRequestPayload): Observable<HighlightsResponse> {
     const params = {
@@ -49,8 +50,8 @@ export class ArticleService {
   }
 
   getUserEditing(
-    filter: FilterRequestPayload, 
-    order: string = 'asc', 
+    filter: FilterRequestPayload,
+    order: string = 'asc',
     order_by: string = 'datee'
   ): Observable<ArticleResponse> {
     return this.http.post<ArticleResponse>(`${this.baseUrl}/v1/user/editing/`, {
@@ -58,14 +59,14 @@ export class ArticleService {
       media_id: 0,
       maxSize: filter.size ?? 16,
       page: filter.page ?? 0,
-      order, 
-      order_by, 
+      order,
+      order_by,
     });
   }
 
   getUserEditingV3(
-    filter: FilterRequestPayload, 
-    order: string = 'asc', 
+    filter: FilterRequestPayload,
+    order: string = 'asc',
     order_by: string = 'datee'
   ): Observable<ArticleResponse> {
     return this.http.post<ArticleResponse>(`${this.baseUrl}/v3/user/editing/`, {
@@ -75,8 +76,8 @@ export class ArticleService {
       media_id: filter.media_id ?? 0,
       max_size: filter.size ?? 16,
       page: filter.page ?? 0,
-      order, 
-      order_by, 
+      order,
+      order_by,
     });
   }
 
@@ -154,6 +155,41 @@ export class ArticleService {
     });
   }
 
+  searchArticlesV4(
+    filter: FilterRequestPayload
+  ): Observable<{ totalItems: number; results: Article[] }> {
+
+    // 1. Normalize & map legacy payload → API v4 payload
+    const v4Params = {
+      term: filter.term ?? '',
+      start_date: `${filter.start_date}T00:00:00`,
+      end_date: `${filter.end_date}T23:00:00`,
+      page: filter.page ?? 0,
+      max_size: filter.maxSize ?? filter.size ?? 8,
+      media_category: filter.media_category ?? 'all',
+      search_field: filter.search_field ?? 'content'
+    };
+
+    // 2. Generate signing fields
+    const nonce = generateNonce();
+    const timestamp = generateTimestamp();
+    const signature = generateSignature(v4Params, timestamp, nonce);
+
+    // 3. Final request body
+    const body = {
+      ...v4Params,
+      signature,
+      timestamp,
+      nonce
+    };
+
+    // 4. Send request (Authorization handled by interceptor)
+    return this.http.post<{ totalItems: number; results: Article[] }>(
+      `${this.baseUrl}/v4/search/`,
+      body
+    );
+  }
+
   downloadDocs(articles: Article[]): Observable<{ data: string }> {
     const user = getUserFromLocalStorage();
     return this.http.post<{ data: string }>(`${this.baseUrl}/v1/user/download/docxs`, {
@@ -171,40 +207,40 @@ export class ArticleService {
     });
   }
 
-  downloadSelectedExcel(filter: FilterRequestPayload, articles: Article[], search: string): Observable<any>{
+  downloadSelectedExcel(filter: FilterRequestPayload, articles: Article[], search: string): Observable<any> {
     const article_ids = articles.map(({ article_id }) => article_id).join(',');
     const sentiments = articles
-    .map(({ tone }) => {
-      switch (tone) {
-        case 1:
-          return 'positive';
-        case -1:
-          return 'negative';
-        case 0:
-          return 'neutral';
-        default:
-          return null;
-      }
-    })
-    .filter(Boolean)
-    .join(','); 
+      .map(({ tone }) => {
+        switch (tone) {
+          case 1:
+            return 'positive';
+          case -1:
+            return 'negative';
+          case 0:
+            return 'neutral';
+          default:
+            return null;
+        }
+      })
+      .filter(Boolean)
+      .join(',');
 
     const params = {
       start_date: filter.start_date ? `${filter.start_date} ${filter.start_time}` : '',
       end_date: filter.end_date ? `${filter.end_date} ${filter.end_time}` : '',
-      download_type : "excel",
+      download_type: "excel",
       category_id: filter.category_id ?? '',
       category_set: filter.category_set ?? '',
       user_media_type_id: filter.user_media_type_id ?? '',
       sentiments: sentiments,
-      article_ids : article_ids,
+      article_ids: article_ids,
       search: search ?? '',
       media_tier: filter.media_tier ?? '',
     };
     return this.http.get<any>(`${this.baseUrl}/v3/user/editing/download`, { params });
   }
 
-  downloadExcel(filter: FilterRequestPayload): Observable<any>{
+  downloadExcel(filter: FilterRequestPayload): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/v1/search/download/`, {
       category_id: 'all',
       page: filter.page ?? 0,

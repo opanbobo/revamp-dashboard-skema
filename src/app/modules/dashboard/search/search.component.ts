@@ -93,7 +93,7 @@ export class SearchComponent {
         this.endDate = moment(searchTermsObj['end_date']).toDate();
       }
 
-      this.fetchArticles({
+      this.fetchArticlesV4({
         start_date: moment(this.startDate).format('YYYY-MM-DD'),
         end_date: moment(this.endDate).format('YYYY-MM-DD'),
         search_field: this.selectedContent,
@@ -137,6 +137,22 @@ export class SearchComponent {
       });
   };
 
+  fetchArticlesV4 = (req: FilterRequestPayload) => {
+    this.isLoading = true;
+    this.articleService
+      .searchArticlesV4(req)
+      .subscribe(({ results, totalItems }) => {
+        console.log('FETCH V4');
+        console.log(results);
+        this.totalRecords = totalItems;
+        this.articles = results;
+      })
+      .add(() => {
+        this.isLoading = false;
+        this.hasSearched = true;
+      });
+  };
+
   onSearch() {
     this.page = 0;
     const payload = {
@@ -148,7 +164,7 @@ export class SearchComponent {
       term: this.searchTerm,
     };
     window.localStorage.setItem(SEARCH_LOCAL_KEY, JSON.stringify(payload));
-    this.fetchArticles(payload);
+    this.fetchArticlesV4(payload);
   }
 
   onDownload = () => {
@@ -187,7 +203,7 @@ export class SearchComponent {
       this.first = e.first!;
     }
 
-    this.fetchArticles({
+    this.fetchArticlesV4({
       start_date: moment(this.startDate).format('YYYY-MM-DD'),
       end_date: moment(this.endDate).format('YYYY-MM-DD'),
       search_field: this.selectedContent,
