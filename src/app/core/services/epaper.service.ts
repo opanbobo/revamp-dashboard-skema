@@ -3,6 +3,7 @@ import { Observable } from 'rxjs';
 import { EpaperResponse } from '../models/epaper.model';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { BASE_URL } from '../api';
+import { FilterRequestPayload } from '../models/request.model';
 
 @Injectable({
   providedIn: 'root'
@@ -15,12 +16,14 @@ export class EpaperService {
   constructor(private http: HttpClient) { }
 
   getEpapers(
-    page: number = 1,
-    limit: number = 10,
-    sort: 'asc' | 'desc' = 'desc',
-    sortBy: string = 'date',
-    search: string = ''
+    page: number,
+    limit: number,
+    sort: 'asc' | 'desc',
+    sortBy: string,
+    search: string,
+    filter: FilterRequestPayload   // MANDATORY
   ): Observable<EpaperResponse> {
+
     let params = new HttpParams()
       .set('page', page.toString())
       .set('limit', limit.toString())
@@ -28,6 +31,13 @@ export class EpaperService {
       .set('sort_by', sortBy)
       .set('search', search);
 
+    Object.entries(filter).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        params = params.set(key, String(value));
+      }
+    });
+
     return this.http.get<EpaperResponse>(this.epapersUrl, { params });
   }
+
 }

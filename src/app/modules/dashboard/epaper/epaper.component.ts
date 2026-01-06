@@ -14,6 +14,8 @@ import { EpaperService } from '../../../core/services/epaper.service';
 import { InputTextModule } from 'primeng/inputtext';
 import { DropdownModule } from 'primeng/dropdown';
 import { ButtonModule } from 'primeng/button';
+import { FilterService } from '../../../core/services/filter.service';
+import { FilterRequestPayload } from '../../../core/models/request.model';
 
 @Component({
   selector: 'app-epaper',
@@ -40,44 +42,54 @@ import { ButtonModule } from 'primeng/button';
 export class EpaperComponent implements OnInit {
   isLoading = false;
   epapers: Epaper[] = [];
+  page = 0;
   first = 0;
   rows = 20;
   totalRecords = 0;
   currentPage = 1;
+  filter: any;
 
   searchForm = {
-    judul: '',
-    tahun: null as number | null,
-    kategori: null as string | null
+    judul: ''
   };
-
-  tahunOptions: any[] = [];
-  kategoriOptions: any[] = [];
 
   constructor(
     private epaperService: EpaperService,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private filterService: FilterService
   ) { }
 
   ngOnInit(): void {
-    this.initializeDropdownOptions();
-    this.loadData();
-  }
-
-  initializeDropdownOptions() {
-    // Initialize empty options for the UI
-    this.tahunOptions = [];
-    this.kategoriOptions = [];
-  }
-
-  loadData(page = 1) {
-    this.isLoading = true;
-    this.currentPage = page;
-
-    this.epaperService.getEpapers(page, this.rows).subscribe({
-      next: (res) => this.handleResponse(res),
-      error: (error) => this.handleError(error)
+    this.filter = this.filterService.subscribe(() => {
+      this.page = 0;
+      this.first = 0;
+      this.loadData();
     });
+  }
+
+
+  ngOnDestroy(): void {
+    this.filter?.unsubscribe();
+  }
+
+  loadData(): void {
+    this.isLoading = true;
+
+    const keyword = (this.searchForm?.judul || '').trim();
+
+    this.epaperService
+      .getEpapers(
+        this.page + 1,
+        this.rows,
+        'desc',
+        'date',
+        keyword,
+        this.filterService.filter
+      )
+      .subscribe({
+        next: (res) => this.handleResponse(res),
+        error: (err) => this.handleError(err)
+      });
   }
 
   handleResponse(res: any) {
@@ -120,52 +132,16 @@ export class EpaperComponent implements OnInit {
 
 
   onPageChange(event: any): void {
-    this.first = event.first;
+    this.page = event.page;
     this.rows = event.rows;
+    this.first = event.first;
 
-    const page = event.page + 1;
-    const keyword = (this.searchForm.judul || '').trim();
-
-    this.isLoading = true;
-
-    this.epaperService
-      .getEpapers(
-        page,
-        this.rows,
-        'desc',
-        'date',
-        keyword
-      )
-      .subscribe({
-        next: (res) => this.handleResponse(res),
-        error: (error) => this.handleError(error)
-      });
+    this.loadData();
   }
-
 
   onSearch(): void {
+    this.page = 0;
     this.first = 0;
-    this.currentPage = 1;
-
-    const keyword = (this.searchForm.judul || '').trim();
-
-    this.isLoading = true;
-
-    this.epaperService
-      .getEpapers(
-        1,
-        this.rows,
-        'desc',
-        'date',
-        keyword
-      )
-      .subscribe({
-        next: (res) => this.handleResponse(res),
-        error: (error) => this.handleError(error)
-      });
-  }
-
-  onResetSearch() {
-
+    this.loadData();
   }
 }
