@@ -38,4 +38,17 @@ export class AuthEffects {
       ),
     { dispatch: false }
   );
+
+  logout = createEffect(
+  () =>
+    this.actions$.pipe(
+      ofType(AuthActions.logout),
+      tap(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+      })
+    ),
+  { dispatch: false }
+);
+
 }

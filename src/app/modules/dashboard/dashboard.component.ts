@@ -23,6 +23,7 @@ import { Store } from '@ngrx/store';
 import { AppState } from '../../core/store';
 import { selectAuthState } from '../../core/store/auth/auth.selectors';
 import { OAuthService } from 'angular-oauth2-oidc';
+import * as AuthActions from '../../core/store/auth/auth.actions';
 
 @Component({
   selector: 'app-dashboard',
@@ -180,6 +181,9 @@ export class DashboardComponent implements OnInit {
         icon: 'pi pi-power-off',
         command: () => {
           console.log('Logout clicked');
+
+          this.store.dispatch(AuthActions.logout());
+
           window.localStorage.removeItem(USER_KEY);
           if (this.oauthService.hasValidAccessToken()) {
             this.oauthService.logOut();
