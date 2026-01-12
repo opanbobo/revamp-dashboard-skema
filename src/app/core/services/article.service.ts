@@ -250,17 +250,56 @@ export class ArticleService {
     });
   }
 
-  sendMail(emails: string, articles: Article[]) {
-    return this.http.post(`${this.baseUrl}/v1/user/editing/send-mail`, {
-      email: emails.trim().replace(' ', ''),
-      data: articles.map((v) => {
-        return {
-          article_id: v.article_id,
-          category_id: v.category_id,
-        };
-      }),
-    });
+  sendMail(
+    emails?: string,
+    articles?: Article[],
+    date?: Date | string | null,
+    articleTitleList?: Record<string, string[]>
+  ) {
+    const payload: any = {};
+
+    // email (optional, backward compatible)
+    if (emails) {
+      payload.email = emails
+        .split(',')
+        .map(e => e.trim())
+        .filter(Boolean)
+        .join(', ');
+    }
+
+    // date (optional)
+    if (date) {
+      payload.date = this.formatDateToIso(date);
+    }
+
+    // article_title_list (optional)
+    if (articleTitleList && Object.keys(articleTitleList).length) {
+      payload.article_title_list = articleTitleList;
+    }
+
+    // existing article id payload (optional, backward compatible)
+    if (articles && articles.length) {
+      payload.data = articles.map(v => ({
+        article_id: v.article_id,
+        category_id: v.category_id,
+      }));
+    }
+
+    return this.http.post(
+      `${this.baseUrl}/v1/user/editing/send-mail`,
+      payload
+    );
   }
+
+  /** private helper */
+  private formatDateToIso(d: Date | string): string {
+    const date = d instanceof Date ? d : new Date(d);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
 
   getArticlesHeadlines(filter: FilterRequestPayload): Observable<{ data: Article[] }> {
     const params = {

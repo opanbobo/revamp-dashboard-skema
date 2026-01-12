@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, ViewChild } from '@angular/core';
-import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { RouterModule } from '@angular/router';
 import { ConfirmationService, MenuItem, MessageService, SortEvent } from 'primeng/api';
@@ -34,6 +34,7 @@ import { FilterService } from '../../../core/services/filter.service';
 import { getUserFromLocalStorage } from '../../../shared/utils/AuthUtils';
 import { NEGATIVE_TONE, NEUTRAL_TONE, POSITIVE_TONE, TONE_MAP } from '../../../shared/utils/Constants';
 import { isEmpty, isValidEmail } from './../../../shared/utils/CommonUtils';
+import { CalendarModule } from 'primeng/calendar';
 
 const highlightKeywords = (content: string, keywords: string[]): string => {
   const cleanedKeywords = keywords.map((keyword) => keyword.replace(/"/g, ''));
@@ -68,6 +69,7 @@ const highlightKeywords = (content: string, keywords: string[]): string => {
     MultiSelectModule,
     ToastModule,
     TooltipModule,
+    CalendarModule
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './newsindex.component.html',
@@ -93,6 +95,8 @@ export class NewsindexComponent {
   });
   modalUpdateOpen: boolean = false;
   showSendMailDialog: boolean = false;
+  sendDate: Date | null = null;
+  categoriesForm: FormGroup;
 
   isLoading: boolean = false;
   editedArticle!: Article;
@@ -172,7 +176,80 @@ export class NewsindexComponent {
     private messageService: MessageService,
     private sanitizer: DomSanitizer,
     private fb: FormBuilder
-  ) { }
+  ) {
+    this.categoriesForm = this.fb.group({
+      categories: this.fb.array([])
+    });
+  }
+
+  get categoriesArray(): FormArray {
+    return this.categoriesForm.get('categories') as FormArray;
+  }
+
+  getTitlesArray(categoryIndex: number): FormArray {
+    return this.categoriesArray.at(categoryIndex).get('titles') as FormArray;
+  }
+
+  addCategory(): void {
+    const categoryGroup = this.fb.group({
+      categoryTitle: ['', Validators.required],
+      titles: this.fb.array([this.fb.control('', Validators.required)])
+    });
+    this.categoriesArray.push(categoryGroup);
+  }
+
+  removeCategory(index: number): void {
+    this.categoriesArray.removeAt(index);
+  }
+
+  addTitle(categoryIndex: number): void {
+    const titlesArray = this.getTitlesArray(categoryIndex);
+    titlesArray.push(this.fb.control('', Validators.required));
+  }
+
+  removeTitle(categoryIndex: number, titleIndex: number): void {
+    const titlesArray = this.getTitlesArray(categoryIndex);
+    titlesArray.removeAt(titleIndex);
+
+    if (titlesArray.length === 0) {
+      this.removeCategory(categoryIndex);
+    }
+  }
+
+  cancelSendMail(): void {
+    this.showSendMailDialog = false;
+    this.sendDate = null;
+    this.categoriesForm.reset();
+    this.categoriesArray.clear();
+  }
+
+  private buildArticleTitleListFromForm(): Record<string, string[]> {
+    const result: Record<string, string[]> = {};
+
+    // assume you already have a getter like categoriesArray or `this.categoriesForm.get('categories')`
+    const categoriesArray = this.categoriesForm?.get('categories') as FormArray;
+    if (!categoriesArray || !categoriesArray.length) {
+      return result;
+    }
+
+    categoriesArray.controls.forEach((categoryGroup: AbstractControl) => {
+      const titleControl = categoryGroup.get('categoryTitle');
+      const titlesFormArray = categoryGroup.get('titles') as FormArray;
+
+      const categoryTitle = titleControl?.value?.toString().trim();
+      if (!categoryTitle) return;
+
+      const titles: string[] = (titlesFormArray?.value || [])
+        .map((t: any) => (t || '').toString().trim())
+        .filter((t: string) => t.length > 0);
+
+      if (titles.length) {
+        result[categoryTitle] = titles;
+      }
+    });
+
+    return result;
+  }
 
   ngOnInit() {
     this.filter = this.filterService.subscribe((filter) => {
@@ -462,20 +539,44 @@ export class NewsindexComponent {
 
   sendMail() {
     this.isLoading = true;
-    this.articleService
-      .sendMail(this.sendMailCtrl.value, this.selectedArticles)
-      .subscribe(() => {
-        this.selectedArticles = [];
+    this.articleService.sendMail(
+      this.sendMailCtrl.value,
+      this.selectedArticles,
+      this.sendDate,
+      this.buildArticleTitleListFromForm()
+    ).subscribe({
+      next: () => {
+        this.resetSendMailForm();
         this.showSendMailDialog = false;
+
         this.messageService.add({
           severity: 'success',
           summary: 'Success',
           detail: 'Email sent!',
         });
-      })
-      .add(() => {
-        this.isLoading = false;
-      });
+      },
+      error: () => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to send email.',
+        });
+      }
+    }).add(() => {
+      this.isLoading = false;
+    });
+  }
+
+  private resetSendMailForm(): void {
+    this.sendMailCtrl.reset('');
+    this.sendDate = null;
+    this.selectedArticles = [];
+    const categoriesArray = this.categoriesForm.get('categories') as FormArray;
+    if (categoriesArray) {
+      categoriesArray.clear();
+    }
+    this.categoriesForm.markAsPristine();
+    this.categoriesForm.markAsUntouched();
   }
 
   isValidEmail(emails: string): boolean {

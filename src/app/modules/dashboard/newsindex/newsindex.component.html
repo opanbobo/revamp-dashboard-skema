@@ -12,12 +12,8 @@
       <div class="flex align-items-end gap-3">
         <div class="flex flex-column gap-2">
           <label class="font-semibold text-sm"> Select by </label>
-          <p-dropdown
-            [formControl]="searchForm.controls['field']"
-            [options]="searchFieldOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Select..." />
+          <p-dropdown [formControl]="searchForm.controls['field']" [options]="searchFieldOptions" optionLabel="label"
+            optionValue="value" placeholder="Select..." />
         </div>
 
         <div class="flex flex-column gap-2">
@@ -31,21 +27,13 @@
         <div class="flex gap-2">
           <div>
             <p-confirmPopup></p-confirmPopup>
-            <p-button
-              label="Action"
-              icon="pi pi-file-edit"
-              size="large"
-              [disabled]="!selectedArticles.length"
-              (click)="menu.toggle($event)"></p-button
-            ><p-tieredMenu #menu [model]="listAction" [popup]="true"></p-tieredMenu>
+            <p-button label="Action" icon="pi pi-file-edit" size="large" [disabled]="!selectedArticles.length"
+              (click)="menu.toggle($event)"></p-button><p-tieredMenu #menu [model]="listAction"
+              [popup]="true"></p-tieredMenu>
           </div>
           <div *ngIf="user?.usr_comp_level != 1">
             <p-confirmPopup></p-confirmPopup>
-            <p-button
-              icon="pi pi-trash"
-              severity="danger"
-              size="large"
-              [disabled]="!selectedArticles.length"
+            <p-button icon="pi pi-trash" severity="danger" size="large" [disabled]="!selectedArticles.length"
               (click)="deleteArticle($event)"></p-button>
           </div>
         </div>
@@ -53,17 +41,9 @@
     </div>
     <div>
       <div class="card">
-        <p-table
-          [value]="articles"
-          dataKey="article_id"
-          [selection]="selectedArticles"
-          [customSort]="true"
-          (selectionChange)="onSelectionChange($event)"
-          (sortFunction)="customSort($event)"
-          [rows]="10"
-          [totalRecords]="totalRecords"
-          [loading]="isLoading"
-          [tableStyle]="{ 'min-width': '50rem' }">
+        <p-table [value]="articles" dataKey="article_id" [selection]="selectedArticles" [customSort]="true"
+          (selectionChange)="onSelectionChange($event)" (sortFunction)="customSort($event)" [rows]="10"
+          [totalRecords]="totalRecords" [loading]="isLoading" [tableStyle]="{ 'min-width': '50rem' }">
           <ng-template pTemplate="header">
             <tr class="text-sm font-medium">
               <th style="width: 8px"></th>
@@ -78,28 +58,15 @@
                 <div class="flex align-items-center gap-2">
                   Media Name
                   <i pSortableColumn="media_name" class="pi pi-angle-down"></i>
-                  <p-columnFilter
-                    #columnFilterMedia
-                    field="tone"
-                    matchMode="in"
-                    display="menu"
-                    [showMatchModes]="false"
-                    [showOperator]="false"
-                    [showAddButton]="false"
-                    [showApplyButton]="false"
-                    [showClearButton]="false"
+                  <p-columnFilter #columnFilterMedia field="tone" matchMode="in" display="menu" [showMatchModes]="false"
+                    [showOperator]="false" [showAddButton]="false" [showApplyButton]="false" [showClearButton]="false"
                     class="columnFilter">
                     <ng-template pTemplate="filter" let-value let-filter="filterCallback">
                       <div class="w-full" style="min-width: 320px">
                         <div class="flex flex-column gap-2">
                           <label class="font-semibold text-sm"> Tones </label>
-                          <p-multiSelect
-                            [options]="toneOptions"
-                            optionLabel="label"
-                            optionValue="label"
-                            [showHeader]="false"
-                            [(ngModel)]="selectedTones"
-                            placeholder="Select...">
+                          <p-multiSelect [options]="toneOptions" optionLabel="label" optionValue="label"
+                            [showHeader]="false" [(ngModel)]="selectedTones" placeholder="Select...">
                             <ng-template let-option pTemplate="item">
                               <div class="inline-block vertical-align-middle">
                                 <span class="ml-1 mt-1">{{ option.label }}</span>
@@ -109,7 +76,8 @@
                         </div>
 
                         <div class="flex gap-2">
-                          <button class="mt-4" pButton [outlined]="true" type="button" label="Clear" (click)="clear()"></button>
+                          <button class="mt-4" pButton [outlined]="true" type="button" label="Clear"
+                            (click)="clear()"></button>
                           <button class="mt-4" pButton type="button" label="Apply" (click)="fetchData()"></button>
                         </div>
                       </div>
@@ -120,25 +88,14 @@
               <th style="min-width: 150px">
                 <div class="flex align-items-center justify-content-center gap-2">
                   Tier Media
-                  <p-columnFilter
-                    #columnFilterTier
-                    field="media_tier"
-                    matchMode="in"
-                    display="menu"
-                    [showMatchModes]="false"
-                    [showOperator]="false"
-                    [showAddButton]="false"
-                    [showApplyButton]="false"
-                    [showClearButton]="false"
-                    class="columnFilter">
+                  <p-columnFilter #columnFilterTier field="media_tier" matchMode="in" display="menu"
+                    [showMatchModes]="false" [showOperator]="false" [showAddButton]="false" [showApplyButton]="false"
+                    [showClearButton]="false" class="columnFilter">
                     <ng-template pTemplate="filter" let-value let-filter="filterCallback">
                       <div class="w-full" style="min-width: 320px">
                         <div class="flex flex-column gap-2">
                           <label class="font-semibold text-sm"> Media Tier </label>
-                          <p-multiSelect
-                            [options]="tierOptions"
-                            [showHeader]="false"
-                            [(ngModel)]="selectedTier"
+                          <p-multiSelect [options]="tierOptions" [showHeader]="false" [(ngModel)]="selectedTier"
                             placeholder="Select...">
                             <ng-template let-option pTemplate="item">
                               <div class="inline-block vertical-align-middle">
@@ -149,7 +106,8 @@
                         </div>
 
                         <div class="flex gap-2">
-                          <button class="mt-4" pButton [outlined]="true" type="button" label="Clear" (click)="clear()"></button>
+                          <button class="mt-4" pButton [outlined]="true" type="button" label="Clear"
+                            (click)="clear()"></button>
                           <button class="mt-4" pButton type="button" label="Apply" (click)="fetchData()"></button>
                         </div>
                       </div>
@@ -171,12 +129,8 @@
           <ng-template pTemplate="body" let-article let-expanded="expanded">
             <tr class="text-sm">
               <td class="pr-2">
-                <p-button
-                  [text]="true"
-                  size="small"
-                  [pRowToggler]="article"
-                  [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
-                  styleClass="p-0 px-0  text-color"
+                <p-button [text]="true" size="small" [pRowToggler]="article"
+                  [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'" styleClass="p-0 px-0  text-color"
                   [style]="{ width: 'max-content' }"></p-button>
               </td>
               <td class="pl-0">
@@ -200,29 +154,18 @@
               </td>
               <td>
                 <div class="flex align-items-center gap-2">
-                  <i
-                    *ngIf="article.act_id"
-                    class="pi pi-info-circle text-primary"
-                    pTooltip="User Change This Article Tone"
-                    tooltipPosition="top"></i>
+                  <i *ngIf="article.act_id" class="pi pi-info-circle text-primary"
+                    pTooltip="User Change This Article Tone" tooltipPosition="top"></i>
                   {{ article.title }}
                 </div>
               </td>
               <td>
                 <div class="flex gap-2">
-                  <p-button
-                    [outlined]="true"
-                    [text]="true"
-                    size="small"
-                    styleClass="p-2 border-1 border-200 bg-white"
+                  <p-button [outlined]="true" [text]="true" size="small" styleClass="p-2 border-1 border-200 bg-white"
                     (onClick)="openEditModal(article)">
                     <icon-pencil class="fill-text-color"></icon-pencil>
                   </p-button>
-                  <p-button
-                    [outlined]="true"
-                    [text]="true"
-                    size="small"
-                    styleClass="p-2 border-1 border-200 bg-white"
+                  <p-button [outlined]="true" [text]="true" size="small" styleClass="p-2 border-1 border-200 bg-white"
                     (onClick)="openPreview(article)">
                     <icon-newspaper [width]="16" [height]="16" class="fill-text-color"></icon-newspaper>
                   </p-button>
@@ -245,19 +188,12 @@
             </tr>
           </ng-template>
         </p-table>
-        <p-paginator
-          *ngIf="totalRecords"
-          (onPageChange)="onPageChange($event)"
-          [first]="first"
-          [rows]="rows"
-          [totalRecords]="totalRecords"
-          [templateLeft]="customLeftTemplate"
-          [showFirstLastIcon]="true"
+        <p-paginator *ngIf="totalRecords" (onPageChange)="onPageChange($event)" [first]="first" [rows]="rows"
+          [totalRecords]="totalRecords" [templateLeft]="customLeftTemplate" [showFirstLastIcon]="true"
           [rowsPerPageOptions]="[10, 20, 50, 100, 500]">
           <ng-template #customLeftTemplate let-state>
-            <span class="text-sm text-color"
-              >Showing {{ state.first + 1 }}-{{ state.first + state.rows }} from {{ state.totalRecords }}</span
-            >
+            <span class="text-sm text-color">Showing {{ state.first + 1 }}-{{ state.first + state.rows }} from {{
+              state.totalRecords }}</span>
           </ng-template>
         </p-paginator>
       </div>
@@ -265,11 +201,7 @@
   </div>
 </section>
 
-<p-dialog
-  header="Header"
-  [(visible)]="modalUpdateOpen"
-  [modal]="true"
-  [style]="{ width: '50rem' }"
+<p-dialog header="Header" [(visible)]="modalUpdateOpen" [modal]="true" [style]="{ width: '50rem' }"
   [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }">
   <ng-template pTemplate="header">
     <div class="inline-flex align-items-center justify-content-center gap-2">
@@ -337,50 +269,93 @@
       </div>
     </form>
 
-    <p-multiSelect
-      [options]="availableCategories"
-      [filter]="false"
-      [(ngModel)]="editedCategories"
-      dataKey="category_id"
-      placeholder="Select Cateogry"
-      optionLabel="category_id"
-      display="chip"
-      appendTo="body"
+    <p-multiSelect [options]="availableCategories" [filter]="false" [(ngModel)]="editedCategories" dataKey="category_id"
+      placeholder="Select Cateogry" optionLabel="category_id" display="chip" appendTo="body"
       styleClass="text-xs w-full mt-4"></p-multiSelect>
   </ng-container>
 
   <ng-template pTemplate="footer">
-    <p-button (click)="modalUpdateOpen = false" label="Cancel" pAutoFocus [outlined]="true" [loading]="isLoading"></p-button>
-    <p-button
-      icon="pi pi-check"
-      (click)="updateArticle()"
-      label="Save"
-      pAutoFocus
-      [disabled]="!user?.stat_edit"
-      [loading]="isLoading"
-      [autofocus]="true"></p-button>
+    <p-button (click)="modalUpdateOpen = false" label="Cancel" pAutoFocus [outlined]="true"
+      [loading]="isLoading"></p-button>
+    <p-button icon="pi pi-check" (click)="updateArticle()" label="Save" pAutoFocus [disabled]="!user?.stat_edit"
+      [loading]="isLoading" [autofocus]="true"></p-button>
   </ng-template>
 </p-dialog>
 
-<p-dialog
-  [(visible)]="showSendMailDialog"
-  [modal]="true"
-  [closeOnEscape]="true"
-  [closable]="true"
-  [dismissableMask]="true"
-  [draggable]="false">
+<p-dialog [(visible)]="showSendMailDialog" [modal]="true" [closeOnEscape]="true" [closable]="true"
+  [dismissableMask]="true" [draggable]="false" [style]="{ width: '50rem' }">
+
   <p-header class="text-base">Send to E-mail</p-header>
-  <div class="flex flex-column gap-2">
+
+  <div class="flex flex-column gap-3">
     <p class="pb-2">
       If more than 1 email is to be sent then use a comma (,) to separate the email. <br />
       Example: abc&#64;mail.com, def&#64;mail.com
     </p>
 
-    <label for="email" class="font-semibold text-sm">E-mail</label>
-    <input pInputText id="email" placeholder="abc@mail.com, def@mail.com" [formControl]="sendMailCtrl" />
+    <div class="grid">
+      <div class="col-6 flex flex-column gap-2">
+        <label for="email" class="font-semibold text-sm">E-mail</label>
+        <input pInputText id="email" placeholder="abc@mail.com, def@mail.com" [formControl]="sendMailCtrl"
+          class="w-full" />
+      </div>
+
+      <div class="col-6 flex flex-column gap-2">
+        <label for="date" class="font-semibold text-sm">Date (Optional)</label>
+        <p-calendar [(ngModel)]="sendDate" inputId="startDate" [showButtonBar]="false" appendTo="body" showIcon="true"
+          [iconDisplay]="'input'" [inputStyle]="{ backgroundColor: 'var(--bg-color)' }">
+        </p-calendar>
+      </div>
+    </div>
+
+    <div class="mt-3">
+      <h3 class="text-sm font-semibold mb-3">List Title Article (Optional)</h3>
+
+      <div class="flex flex-column gap-4" [formGroup]="categoriesForm">
+        <ng-container formArrayName="categories">
+          <div *ngFor="let category of categoriesArray.controls; let i = index" [formGroupName]="i"
+            class="category-card p-3 border-round border-1 surface-border">
+
+            <div class="flex align-items-center justify-content-between mb-2">
+              <input pInputText formControlName="categoryTitle" placeholder="Category Title"
+                class="font-semibold text-sm w-10" />
+
+              <p-button icon="pi pi-trash" severity="danger" [text]="true" [rounded]="true" (click)="removeCategory(i)">
+              </p-button>
+            </div>
+            <div class="flex flex-column gap-2 pl-4 mt-2 border-left-2 surface-border" formArrayName="titles">
+
+              <div *ngFor="let title of getTitlesArray(i).controls; let j = index"
+                class="flex align-items-center gap-2">
+
+                <input pInputText [formControlName]="j" placeholder="Input title here..." class="flex-1 text-sm" />
+
+                <p-button icon="pi pi-trash" severity="danger" [text]="true" [rounded]="true"
+                  (click)="removeTitle(i, j)">
+                </p-button>
+              </div>
+            </div>
+
+            <div class="pl-4 mt-3">
+              <p-button icon="pi pi-plus" label="Add Title" [text]="true" size="small" (click)="addTitle(i)">
+              </p-button>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+
+      <div class="mt-4">
+        <p-button icon="pi pi-plus" label="Add New Category" [outlined]="true" size="small" styleClass="w-full"
+          (click)="addCategory()">
+        </p-button>
+      </div>
+    </div>
+
+
   </div>
+
   <p-footer>
-    <p-button (click)="showSendMailDialog = false" label="Cancel" [outlined]="true"></p-button>
-    <p-button (click)="sendMail()" pAutoFocus label="Send" [autofocus]="true" [disabled]="!isValidEmail(sendMailCtrl.value)"></p-button>
+    <p-button (click)="cancelSendMail()" label="Cancel" [outlined]="true"></p-button>
+    <p-button (click)="sendMail()" label="Send Email" [disabled]="!isValidEmail(sendMailCtrl.value)"></p-button>
   </p-footer>
 </p-dialog>
