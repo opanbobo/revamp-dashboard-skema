@@ -121,6 +121,9 @@
                   <i pSortableColumn="title" class="pi pi-angle-down"></i>
                 </div>
               </th>
+              <th style="width: 9rem" class="text-center">
+                <div>Sub Category</div>
+              </th>
               <th style="width: 4rem" class="text-center">
                 <div>Preview</div>
               </th>
@@ -157,6 +160,13 @@
                   <i *ngIf="article.act_id" class="pi pi-info-circle text-primary"
                     pTooltip="User Change This Article Tone" tooltipPosition="top"></i>
                   {{ article.title }}
+                </div>
+              </td>
+              <td>
+                <div class="flex align-items-center justify-content-center gap-2">
+                  <i *ngIf="article.act_id" class="pi pi-info-circle text-primary"
+                    pTooltip="User Change This Article Tone" tooltipPosition="top"></i>
+                  {{ article.category_id }}
                 </div>
               </td>
               <td>
