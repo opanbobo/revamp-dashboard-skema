@@ -462,32 +462,49 @@ export class NewsindexComponent {
   }
 
   openEditModal = async (article: Article) => {
-    const categoriesResp = await this.articleService.getSubCategoriesDistinct().toPromise();
 
-    const keywordRes = await this.articleService.getKeywordsByArticleId(article.article_id).toPromise();
+    const categoriesResp = await this.articleService
+      .getSubCategoriesDistinct()
+      .toPromise();
+
+    const keywordRes = await this.articleService
+      .getKeywordsByArticleId(article.article_id)
+      .toPromise();
 
     const cleanedAndSplitData = keywordRes!.data.flatMap((item: string) => {
       const cleaned = item.replace(/^""|""$/g, "");
-      return cleaned.split("\" \"").map((keyword) => keyword.replace(/\"/g, "").trim()); // Split and clean
+      return cleaned
+        .split('" "')
+        .map((keyword) => keyword.replace(/"/g, "").trim());
     });
 
     const uniqueKeywords = Array.from(new Set(cleanedAndSplitData));
     const finalKeyword = uniqueKeywords.map((keyword) => `"${keyword}"`);
 
     const hightligtedWords = highlightKeywords(article.content, finalKeyword);
-    this.sanitizedContent = this.sanitizer.bypassSecurityTrustHtml(hightligtedWords);
+    this.sanitizedContent =
+      this.sanitizer.bypassSecurityTrustHtml(hightligtedWords);
 
     this.availableCategories = categoriesResp?.results ?? [];
+
+    const availableCategoryIds = new Set(
+      this.availableCategories.map((c) => c.category_id)
+    );
+
+    this.editedCategories = article.categories
+      .filter((categoryId) => availableCategoryIds.has(categoryId))
+      .map((categoryId) => ({
+        category_id: categoryId,
+      }));
+
     this.editedArticle = article;
-    this.editedCategories = article.categories.map((val) => ({
-      category_id: val,
-    }));
 
     this.editedValues.setValue({
       title: article.title ?? '',
-      issue: article?.issue ?? '',
-      summary: article?.summary ?? '',
+      issue: article.issue ?? '',
+      summary: article.summary ?? '',
     });
+
     this.modalUpdateOpen = true;
   };
 
