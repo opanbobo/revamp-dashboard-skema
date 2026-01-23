@@ -83,6 +83,7 @@ export class DashboardComponent implements OnInit {
     'share': 'Share',
     'search': 'Search',
     'epaper': 'E-Paper',
+    'download': "Download",
     'admin': 'Admin',
   };
 
@@ -151,6 +152,11 @@ export class DashboardComponent implements OnInit {
         label: 'E-Paper',
         routerLink: 'epaper',
         icon: '../../../assets/icons/person-search.svg',
+      },
+      {
+        label: 'Download',
+        routerLink: 'download',
+        icon: '../../../assets/icons/newspaper.svg',
       },
       {
         label: 'Preference',
