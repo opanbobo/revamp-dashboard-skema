@@ -291,7 +291,13 @@ export class NewsindexComponent {
       }, order, order_by)
       .subscribe((res) => {
         this.isLoading = false;
-        this.articles = res.data;
+        // this.articles = res.data;
+        this.articles = res.data.map((article: Article) => ({
+          ...article,
+          sanitizedContent: this.sanitizer.bypassSecurityTrustHtml(
+            article.content ?? ''
+          )
+        }));
         this.totalRecords = res.recordsTotal;
       });
   };

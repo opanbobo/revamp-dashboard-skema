@@ -1,3 +1,5 @@
+import { SafeHtml } from "@angular/platform-browser";
+
 export interface Article {
   date_time: any;
   toneLabel?: string;
@@ -32,6 +34,7 @@ export interface Article {
   summary?: string;
   issue?: string;
   keywords?: string[];
+  sanitizedContent?: SafeHtml;
 }
 
 export interface ArticleResponse {

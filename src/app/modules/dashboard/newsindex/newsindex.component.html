@@ -155,13 +155,14 @@
                   {{ article.media_tier }}
                 </div>
               </td>
-              <td>
+              <td class="news-title">
                 <div class="flex align-items-center gap-2">
                   <i *ngIf="article.act_id" class="pi pi-info-circle text-primary"
                     pTooltip="User Change This Article Tone" tooltipPosition="top"></i>
                   {{ article.title }}
                 </div>
               </td>
+
               <td>
                 <div class="flex align-items-center justify-content-center gap-2">
                   <i *ngIf="article.act_id" class="pi pi-info-circle text-primary"
@@ -192,7 +193,7 @@
                     <div class="text-sm">Issue:</div>
                     <p-tag [value]="article.issue"></p-tag>
                   </div>
-                  <div class="text-sm">{{ article.content }}</div>
+                  <div class="text-sm" [innerHTML]="article.sanitizedContent"></div>
                 </div>
               </td>
             </tr>
