@@ -41,60 +41,49 @@ import { authCodeFlowConfig } from './auth.config';
 export class LoginComponent implements OnInit, OnDestroy {
 
   loginForm = new FormGroup({
-    username: new FormControl(null, Validators.required),
-    password: new FormControl(null, Validators.required),
+    username: new FormControl<string | null>(null, Validators.required),
+    password: new FormControl<string | null>(null, Validators.required),
   });
 
   isLoading = false;
   authState$: Observable<AuthState>;
 
   private subscriptions = new Subscription();
-  private hasNavigated = false;
 
   constructor(
     private store: Store<AppState>,
-    private router: Router,
     private messageService: MessageService,
     private keycloakService: KeycloakService,
     private oauthService: OAuthService
   ) {
     this.authState$ = this.store.select(selectAuthState);
 
-    const data = window.localStorage.getItem('useDarkMode');
+    // Dark mode handling (UI-only concern)
+    const data = localStorage.getItem('useDarkMode');
     if (data) {
-      const checked = JSON.parse(data);
-      document.body.classList.toggle('dark', checked);
+      document.body.classList.toggle('dark', JSON.parse(data));
     }
   }
 
   ngOnInit(): void {
-    const authSub = this.authState$.subscribe((state) => {
-      this.isLoading = state.isLoading;
+    // React ONLY to UI-relevant auth state
+    this.subscriptions.add(
+      this.authState$.subscribe((state) => {
+        this.isLoading = state.isLoading;
 
-      if ((state.user || getUserFromLocalStorage()) && !this.hasNavigated) {
-        this.hasNavigated = true;
-
-        if (!state.user?.menu.includes('overview')) {
-          this.router.navigateByUrl(`/dashboard/${state.user?.menu[0]}`);
-        } else {
-          this.router.navigateByUrl('/');
+        if (state.error) {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: state.error,
+          });
         }
-        return;
-      }
+      })
+    );
 
-      if (state.error) {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: state.error,
-        });
-      }
-    });
-
-    this.subscriptions.add(authSub);
-
+    // OAuth initialization (safe)
     this.oauthService.configure(authCodeFlowConfig);
-    this.oauthService.loadDiscoveryDocument();
+    this.oauthService.loadDiscoveryDocumentAndTryLogin();
   }
 
   login(): void {
@@ -103,7 +92,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const { username, password } = this.loginForm.value;
+    const { username, password } = this.loginForm.getRawValue();
 
     this.store.dispatch(setFilter({ filter: initialState }));
     this.store.dispatch(
@@ -115,11 +104,7 @@ export class LoginComponent implements OnInit, OnDestroy {
   }
 
   loginWithSSO(): void {
-    this.keycloakService.login().then(() => {
-      const kc = this.keycloakService.getKeycloakInstance();
-      console.log('accessToken', kc.token);
-      console.log('refreshToken', kc.refreshToken);
-    });
+    this.keycloakService.login();
   }
 
   loginWithOAuth(): void {

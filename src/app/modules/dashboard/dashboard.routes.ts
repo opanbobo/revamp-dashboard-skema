@@ -156,6 +156,7 @@ export const DashboardRoutes: DashboardRoutesProps[] = [
         path: 'epaper',
         title: 'E-Paper',
         component: EpaperComponent,
+        canActivate: mapToCanActivate([AuthGuardService]),
         withFilter: true,
       },
       {
