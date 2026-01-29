@@ -70,6 +70,14 @@
 
                             <td class="text-center">
                                 <div class="flex justify-content-center gap-2">
+
+                                    <!-- Download -->
+                                    <p-button icon="pi pi-download" severity="success" [text]="true" [outlined]="true"
+                                        size="small" [disabled]="download.status !== 'SUCCESS'"
+                                        (click)="downloadFile(download)">
+                                    </p-button>
+
+
                                     <!-- Retry -->
                                     <p-button *ngIf="download.status === 'FAILED'" icon="pi pi-refresh" [text]="true"
                                         [outlined]="true" size="small" pTooltip="Retry"
@@ -108,33 +116,22 @@
     </div>
 </section>
 
-<p-dialog
-  header="Retry Download"
-  [(visible)]="retryDialogOpen"
-  [modal]="true"
-  [style]="{ width: '26rem' }"
-  [breakpoints]="{ '575px': '90vw' }">
+<p-dialog header="Retry Download" [(visible)]="retryDialogOpen" [modal]="true" [style]="{ width: '26rem' }"
+    [breakpoints]="{ '575px': '90vw' }">
 
-  <div class="pt-2 text-sm text-color-secondary">
-    Are you sure you want to retry this download job?
-  </div>
-
-  <ng-template pTemplate="footer">
-    <div class="pt-3 flex justify-end gap-2">
-      <p-button
-        label="Cancel"
-        [outlined]="true"
-        (click)="closeRetryDialog()">
-      </p-button>
-
-      <p-button
-        label="Retry"
-        severity="info"
-        [loading]="isRetrying"
-        (click)="confirmRetryDownload()">
-      </p-button>
+    <div class="pt-2 text-sm text-color-secondary">
+        Are you sure you want to retry this download job?
     </div>
-  </ng-template>
+
+    <ng-template pTemplate="footer">
+        <div class="pt-3 flex justify-end gap-2">
+            <p-button label="Cancel" [outlined]="true" (click)="closeRetryDialog()">
+            </p-button>
+
+            <p-button label="Retry" severity="info" [loading]="isRetrying" (click)="confirmRetryDownload()">
+            </p-button>
+        </div>
+    </ng-template>
 </p-dialog>
 
 <p-dialog header="Delete Download" [(visible)]="deleteDialogOpen" [modal]="true" [style]="{ width: '40rem' }"

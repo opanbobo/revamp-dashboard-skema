@@ -7,12 +7,32 @@ import { TopIssueResponse } from '../models/issue.model';
 import { MediaVisibilityResponse } from '../models/media-visibility.model';
 import { FilterRequestPayload } from '../models/request.model';
 
+export interface DownloadExcelPayload {
+  name: string;
+  category_set: string;
+  category_id: string;
+  columns: string[];
+  start_date: string;
+  end_date: string;
+  user_media_type_id: number;
+}
+
+export interface DownloadExcelResponse {
+  code: number;
+  status: 'success' | 'failed';
+  message: string;
+  data: {
+    id: string;
+    status: string;
+  };
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class AnalyzeService {
   private baseUrl = BASE_URL;
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   getMediaVisibility(filter: FilterRequestPayload): Observable<MediaVisibilityResponse> {
     const startDate = new Date(filter.start_date!).getDate();
@@ -48,4 +68,21 @@ export class AnalyzeService {
   downloadExcel(payload: any): Observable<any> {
     return this.http.post<any>(`${this.baseUrl}/v1/dashboard/download-excel`, payload);
   }
+
+  // New API endpoint migration 
+  downloadExcelV2(payload: DownloadExcelPayload): Observable<DownloadExcelResponse> {
+    const url = `${this.baseUrl}/v1/user/downloads/excel`;
+    return this.http.post<DownloadExcelResponse>(url, payload);
+  }
+
+  downloadPptV2(payload: {
+    name: string;
+    images: string[];
+  }): Observable<any> {
+    return this.http.post<any>(
+      `${this.baseUrl}/v1/user/downloads/powerpoint`,
+      payload
+    );
+  }
+
 }

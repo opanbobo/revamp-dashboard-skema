@@ -1,4 +1,6 @@
 <section>
+  <p-toast></p-toast>
+  <p-confirmDialog></p-confirmDialog>
   <spinner [spinning]="isLoading">
     <div class="flex align-items-center gap-2 mb-4">
       <icon-newspaper fill="var(--primary-color)"></icon-newspaper>
@@ -7,27 +9,21 @@
     </div>
     <div class="mb-5 w-full h-full" style="max-width: 1108px">
       <canvas [ngClass]="{ hidden: !isDataExist }" #chartArea width="800" height="400" class="w-full h-full"></canvas>
-      <div *ngIf="!isDataExist" class="h-5rem w-5rem flex align-items-center justify-content-center text-color-secondary">No Data.</div>
+      <div *ngIf="!isDataExist"
+        class="h-5rem w-5rem flex align-items-center justify-content-center text-color-secondary">No Data.</div>
     </div>
   </spinner>
   <spinner [spinning]="isConvertingImages">
     <div>
       <div class="relative">
-        <p-tabMenu
-          [model]="tabItems"
-          [activeItem]="activeTab"
-          (activeItemChange)="onActiveItemChange($event)"
+        <p-tabMenu [model]="tabItems" [activeItem]="activeTab" (activeItemChange)="onActiveItemChange($event)"
           [style]="{ backgroundColor: 'var(--bg-color)' }">
           <ng-template pTemplate="item" let-item>
             <div class="p-menuitem-link flex justify-content-between align-items-center cursor-pointer">
               <div class="flex align-items-center gap-2">
-                <icon-newspaper
-                  *ngIf="item.key === 'media'"
-                  [width]="20"
-                  [height]="20"
+                <icon-newspaper *ngIf="item.key === 'media'" [width]="20" [height]="20"
                   [class]="activeTab?.['key'] === 'media' ? 'fill-primary' : ''"></icon-newspaper>
-                <icon-pencil
-                  *ngIf="item.key === 'coverage'"
+                <icon-pencil *ngIf="item.key === 'coverage'"
                   [class]="activeTab?.['key'] === 'coverage' ? 'fill-primary' : ''"></icon-pencil>
                 <div class="text-xs font-medium">{{ item.label }}</div>
               </div>
@@ -36,97 +32,95 @@
         </p-tabMenu>
         <div class="absolute top-0 right-0 mr-1 mb-2 z-5">
           <button-secondary label="Download" icon="pi pi-chevron-down" (click)="menu.toggle($event)"></button-secondary>
-          <p-tieredMenu #menu [popup]="true" [model]="downloadItems" appendTo="body" styleClass="text-sm"></p-tieredMenu>
+          <p-tieredMenu #menu [popup]="true" [model]="downloadItems" appendTo="body"
+            styleClass="text-sm"></p-tieredMenu>
         </div>
       </div>
       <div class="py-4">
-        <app-media-visibility *ngIf="isConvertingImages || (activeTab && activeTab['key'] === 'media')"></app-media-visibility>
-        <app-coverage-tone *ngIf="isConvertingImages || (activeTab && activeTab['key'] === 'coverage')"></app-coverage-tone>
+        <app-media-visibility
+          *ngIf="isConvertingImages || (activeTab && activeTab['key'] === 'media')"></app-media-visibility>
+        <app-coverage-tone
+          *ngIf="isConvertingImages || (activeTab && activeTab['key'] === 'coverage')"></app-coverage-tone>
       </div>
     </div>
   </spinner>
 </section>
 
-<p-dialog
-  header="Header"
-  [(visible)]="downloadExcelConfirmModalOpen"
-  [modal]="true"
-  [style]="{ width: '50rem' }"
-  [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }">
-  <p-header class="text-base">Download Excel File</p-header>
-  <div>
-    <div class="mb-2 font-semibold">Columns:</div>
-    <p-listbox
-      [(ngModel)]="selectedColumns"
-      [options]="columnsOptions"
-      [selectAll]="selectedColumns.length === columnsOptions.length"
-      optionLabel="label"
-      [multiple]="true"
-      [checkbox]="true"
-      [metaKeySelection]="false"
-      [showToggleAll]="true"
-      (onSelectAllChange)="onCheckedAllColumn($event.checked)"></p-listbox>
+<p-dialog header="Download Excel File" [(visible)]="downloadExcelConfirmModalOpen" [modal]="true"
+  [style]="{ width: '50rem' }">
 
-    <div class="mt-4 mb-2 font-semibold">Categories:</div>
-    <p-listbox
-      [(ngModel)]="selectedCategories"
-      [options]="categoriesOptions"
-      [selectAll]="selectedCategories.length === categoriesOptions.length"
-      optionLabel="label"
-      [multiple]="true"
-      [checkbox]="true"
-      [metaKeySelection]="false"
-      [showToggleAll]="true"
-      (onSelectAllChange)="onCheckedAllCategory($event.checked)"></p-listbox>
+  <!-- Job Name -->
+  <div class="mb-4">
+    <label class="font-semibold block mb-2">Job Name</label>
+
+    <span class="p-input-icon-right w-full">
+      <input type="text" pInputText [formControl]="jobNameCtrl" placeholder="Enter job name..."
+        class="p-inputtext-sm w-full" />
+    </span>
   </div>
-  <div class="mt-5"><span class="font-semibold">Note:</span> you can only download the columns that are selected.</div>
+
+  <!-- Columns -->
+  <div class="mb-2 font-semibold">Columns:</div>
+  <p-listbox [(ngModel)]="selectedColumns" [options]="columnsOptions" optionLabel="label" [multiple]="true"
+    [checkbox]="true" [showToggleAll]="true">
+  </p-listbox>
+
+  <!-- Categories -->
+  <div class="mt-4 mb-2 font-semibold">Categories:</div>
+  <p-listbox [(ngModel)]="selectedCategories" [options]="categoriesOptions" optionLabel="label" [multiple]="true"
+    [checkbox]="true" [showToggleAll]="true">
+  </p-listbox>
+
   <p-footer>
-    <div class="pt-4">
-      <p-button
-        (click)="downloadExcelConfirmModalOpen = false"
-        label="Cancel"
-        pAutoFocus
-        [outlined]="true"
-        [disabled]="isDownloadingExcel"></p-button>
-      <p-button
-        [loading]="false"
-        label="Download"
-        pAutoFocus
-        [disabled]="this.selectedCategories.length === 0 || this.selectedColumns.length === 0"
-        [autofocus]="true"
-        [loading]="isDownloadingExcel"
-        (click)="downloadExcel()"></p-button>
+    <div class="pt-4 flex gap-2 justify-content-end">
+      <p-button label="Cancel" [outlined]="true" (click)="downloadExcelConfirmModalOpen = false"
+        [disabled]="isDownloadingExcel">
+      </p-button>
+
+      <p-button label="Queue Download" [loading]="isDownloadingExcel" [disabled]="
+          !jobNameCtrl.value ||
+          selectedCategories.length === 0 ||
+          selectedColumns.length === 0
+        " (click)="downloadExcel()">
+      </p-button>
     </div>
   </p-footer>
 </p-dialog>
 
-<p-dialog
-  header="Header"
-  [(visible)]="downloadConfirmModalOpen"
-  [modal]="true"
-  [style]="{ width: '50rem' }"
+
+<p-dialog header="Header" [(visible)]="downloadConfirmModalOpen" [modal]="true" [style]="{ width: '50rem' }"
   [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }">
-  <p-header class="font-bold text-base"> Download PPT file </p-header>
+  <p-header class="font-bold text-base">
+    Download PPT file
+  </p-header>
+
+  <div class="mb-4">
+    <label class="font-semibold block mb-2">
+      Job Name
+    </label>
+
+    <input pInputText placeholder="Example: Batch 1" [formControl]="jobNameCtrl" class="w-full" />
+
+    <small class="text-red-500" *ngIf="jobNameCtrl.invalid && jobNameCtrl.touched">
+      Job Name is required
+    </small>
+  </div>
+
   <div>
     <div *ngFor="let image of images">
       <img [src]="image.image" class="w-full" />
     </div>
   </div>
+
   <ng-template pTemplate="footer">
-    <div class="pt-4">
-      <p-button
-        (click)="downloadConfirmModalOpen = false"
-        label="Cancel"
-        pAutoFocus
-        [outlined]="true"
+    <div class="pt-4 flex justify-content-end gap-2">
+
+      <p-button (click)="downloadConfirmModalOpen = false" label="Cancel" [outlined]="true"
         [disabled]="isDownloading"></p-button>
-      <p-button
-        [loading]="false"
-        label="Download"
-        pAutoFocus
-        [autofocus]="true"
-        [loading]="isDownloading"
-        (click)="downloadPpt()"></p-button>
+
+      <p-button label="Queue Download" icon="pi pi-check" [loading]="isDownloading"
+        [disabled]="jobNameCtrl.invalid || isDownloading" (click)="downloadPpt()"></p-button>
+
     </div>
   </ng-template>
 </p-dialog>

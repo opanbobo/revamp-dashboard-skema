@@ -286,24 +286,18 @@ confirmDeleteDownload(): void {
     }
   }
 
-  downloadFile(fileUrl: string, fileName: string): void {
-    if (!fileUrl) {
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Warning',
-        detail: 'File URL is not available'
-      });
-      return;
-    }
-
-    const link = document.createElement('a');
-    link.href = fileUrl;
-    link.download = fileName || 'download';
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  downloadFile(download: any): void {
+  if (!download.file_url) {
+    this.messageService.add({
+      severity: 'warn',
+      summary: 'Not Ready',
+      detail: 'File is not available yet.',
+    });
+    return;
   }
+  window.open(download.file_url, '_blank')?.focus();
+}
+
 
   formatDateTime(dateString: string): string {
     const date = new Date(dateString);

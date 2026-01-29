@@ -8,7 +8,7 @@ import { ChartModule } from 'primeng/chart';
 import { TabMenuModule } from 'primeng/tabmenu';
 import { IconHomeComponent } from '../../../../core/components/icons/home/home.component';
 import { IconChartComponent } from '../../../../core/components/icons/chart/chart.component';
-import { MenuItem } from 'primeng/api';
+import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { CommonModule } from '@angular/common';
 import { MediaVisibilityComponent } from './media-visibility/media-visibility.component';
 import { CoverageToneComponent } from './coverage-tone/coverage-tone.component';
@@ -28,12 +28,16 @@ import { TabViewModule } from 'primeng/tabview';
 import html2canvas from 'html2canvas';
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
-import { FormsModule } from '@angular/forms';
+import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AnalyzeService } from '../../../../core/services/analyze.service';
 import { PreferenceService } from '../../../../core/services/preference.service';
 import { ListboxModule } from 'primeng/listbox';
 import { FilterService } from '../../../../core/services/filter.service';
 import { Router } from '@angular/router';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { Toast, ToastModule } from 'primeng/toast';
+import { ConfirmPopupModule } from 'primeng/confirmpopup';
+import { InputTextModule } from 'primeng/inputtext';
 
 Chart.register(TreemapController, TreemapElement);
 
@@ -58,7 +62,12 @@ Chart.register(TreemapController, TreemapElement);
     ButtonModule,
     FormsModule,
     ListboxModule,
+    ConfirmDialogModule,
+    ToastModule,
+    ReactiveFormsModule,
+    InputTextModule
   ],
+  providers: [MessageService, ConfirmationService],
   templateUrl: './top-issue.component.html',
   styleUrl: './top-issue.component.scss',
 })
@@ -93,13 +102,22 @@ export class TopIssueComponent {
 
   chart: any;
 
+  jobNameCtrl = new FormControl('', Validators.required);
+  showJobDialog = false;
+
+
+  downloadPptConfirmModalOpen = false;
+
+
   constructor(
     private store: Store<AppState>,
     private analyzeService: AnalyzeService,
     private preferenceService: PreferenceService,
     private filterService: FilterService,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private messageService: MessageService,
+    private confirmationService: ConfirmationService
   ) {
     this.analyzeState = this.store.select(selectAnalyzeState);
     this.tabItems = [
@@ -243,6 +261,7 @@ export class TopIssueComponent {
   };
 
   getImagesFromCharts = async () => {
+    this.isLoading = true;
     this.isConvertingImages = true;
     const charts = [
       { key: 'visibilityChart', label: 'Visibility Chart' },
@@ -264,17 +283,60 @@ export class TopIssueComponent {
     this.isConvertingImages = false;
     this.images = images;
     this.downloadConfirmModalOpen = true;
+    this.isLoading = false;
   };
 
   downloadPpt = () => {
-    this.isDownloading = true;
-    this.analyzeService
-      .downloadPPT(this.images.map((image) => image.image))
-      .subscribe(({ data }) => {
-        window.open(data, '_blank')?.focus();
-      })
-      .add(() => (this.isDownloading = false));
+  // force validation message if empty
+  if (this.jobNameCtrl.invalid) {
+    this.jobNameCtrl.markAsTouched();
+    return;
+  }
+
+  this.isDownloading = true;
+
+  const payload = {
+    name: this.jobNameCtrl.value!,
+    images: this.images.map((img) => img.image),
   };
+
+  this.analyzeService.downloadPptV2(payload).subscribe({
+    next: (res) => {
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Queued',
+        detail: `PowerPoint job queued (ID: ${res.data.id})`,
+      });
+
+      this.downloadConfirmModalOpen = false;
+      this.jobNameCtrl.reset();
+      this.confirmationService.confirm({
+        message:
+          'PowerPoint job has been queued successfully. Open the download progress page?',
+        header: 'Job Created',
+        icon: 'pi pi-check-circle',
+        acceptLabel: 'Yes',
+        rejectLabel: 'No',
+
+        accept: () => {
+          this.router.navigate(['/dashboard/download']);
+        },
+      });
+    },
+
+    error: () => {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Failed',
+        detail: 'Unable to queue PowerPoint download',
+      });
+    },
+
+    complete: () => {
+      this.isDownloading = false;
+    },
+  });
+};
 
   onCheckedAllColumn = (isChecked: boolean) => {
     this.selectedColumns = isChecked ? [...this.columnsOptions] : [];
@@ -306,25 +368,68 @@ export class TopIssueComponent {
   };
 
   downloadExcel = () => {
+    if (!this.jobNameCtrl.value) return;
+
     this.isDownloadingExcel = true;
+
     const columns = this.selectedColumns.map(({ value }) => value);
     const categories = this.selectedCategories.map(({ value }) => value).join(',');
 
-    const { category_id, date_type, end_date, start_date, user_media_type_id } = this.filterService.filter; // prettier-ignore
+    const { category_id, end_date, start_date, user_media_type_id, start_time, end_time } =
+      this.filterService.filter;
+
     this.analyzeService
-      .downloadExcel({
-        url: false,
+      .downloadExcelV2({
+        name: this.jobNameCtrl.value,
         category_set: categories,
-        category_id,
+        category_id: category_id ?? 'all',
         columns,
-        date_type,
-        end_date,
-        start_date,
-        user_media_type_id,
+        start_date: `${start_date} ${start_time}`,
+        end_date: `${end_date} ${end_time}`,
+        user_media_type_id: user_media_type_id ?? 0,
       })
-      .subscribe(({ data }) => window.open(data, '_blank')?.focus())
-      .add(() => (this.isDownloadingExcel = false));
+      .subscribe({
+        next: (res) => {
+          if (res.status === 'success') {
+            this.downloadExcelConfirmModalOpen = false;
+
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Excel Download Queued',
+              detail: res.message,
+            });
+
+            this.confirmationService.confirm({
+              message:
+                'Excel job has been queued successfully. Open the download progress page?',
+              header: 'Excel Job Created',
+              icon: 'pi pi-check-circle',
+              acceptLabel: 'Yes',
+              rejectLabel: 'No',
+
+              accept: () => {
+                this.router.navigate(['/dashboard/download']);
+              },
+            });
+
+
+          }
+        },
+
+        error: () => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Failed',
+            detail: 'Unable to queue Excel job.',
+          });
+        },
+      })
+      .add(() => {
+        this.isDownloadingExcel = false;
+        this.jobNameCtrl.reset();
+      });
   };
+
 
   ngOnDestroy() {
     this.filter?.unsubscribe?.();
