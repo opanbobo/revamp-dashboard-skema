@@ -1,5 +1,6 @@
 <section>
   <p-toast></p-toast>
+  <p-confirmDialog></p-confirmDialog>
   <div class="flex align-items-center gap-2 mb-4">
     <icon-newspaper fill="var(--primary-color)"></icon-newspaper>
     <div class="text-sm font-semibold">News</div>
@@ -26,13 +27,13 @@
 
         <div class="flex gap-2">
           <div>
-            <p-confirmPopup></p-confirmPopup>
+            <!-- <p-confirmPopup></p-confirmPopup> -->
             <p-button label="Action" icon="pi pi-file-edit" size="large" [disabled]="!selectedArticles.length"
               (click)="menu.toggle($event)"></p-button><p-tieredMenu #menu [model]="listAction"
               [popup]="true"></p-tieredMenu>
           </div>
           <div *ngIf="user?.usr_comp_level != 1">
-            <p-confirmPopup></p-confirmPopup>
+            <!-- <p-confirmPopup></p-confirmPopup> -->
             <p-button icon="pi pi-trash" severity="danger" size="large" [disabled]="!selectedArticles.length"
               (click)="deleteArticle($event)"></p-button>
           </div>
@@ -369,4 +370,45 @@
     <p-button (click)="cancelSendMail()" label="Cancel" [outlined]="true"></p-button>
     <p-button (click)="sendMail()" label="Send Email" [disabled]="!isValidEmail(sendMailCtrl.value)"></p-button>
   </p-footer>
+</p-dialog>
+
+<p-dialog
+  header="Download Job"
+  [(visible)]="showDownloadJobDialog"
+  [modal]="true"
+  [style]="{ width: '30rem' }"
+>
+  <div class="flex flex-column gap-3">
+    <label class="font-semibold text-sm">
+      Job Name ({{ currentDownloadFormat | uppercase }})
+    </label>
+
+    <input
+      pInputText
+      placeholder="Example: Batch 1"
+      [formControl]="jobNameCtrl"
+    />
+
+    <small
+      class="text-red-500"
+      *ngIf="jobNameCtrl.invalid && jobNameCtrl.touched"
+    >
+      Job Name is required
+    </small>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <p-button
+      label="Cancel"
+      [outlined]="true"
+      (click)="showDownloadJobDialog = false"
+    ></p-button>
+
+    <p-button
+      label="Start Job"
+      icon="pi pi-check"
+      [disabled]="jobNameCtrl.invalid"
+      (click)="queueDownloadJob()"
+    ></p-button>
+  </ng-template>
 </p-dialog>

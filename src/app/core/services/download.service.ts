@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { DeleteDownloadResponse, DownloadResponse, RetryDownloadResponse } from '../models/download.model';
+import { DownloadResponse } from '../models/download.model';
 import { BASE_URL } from '../api';
 import { FilterRequestPayload } from '../models/request.model';
 
@@ -182,14 +182,13 @@ export class DownloadService {
 
   retryDownload(id: string) {
     return this.http.post<any>(
-      `${this.baseUrl}/${id}/retry`,
+      `${this.baseUrl}/v1/user/downloads/${id}/retry`,
       null
     );
   }
 
-
   deleteDownload(id: string) {
-    return this.http.delete<any>(`${this.baseUrl}/${id}`);
+    return this.http.delete<any>(`${this.baseUrl}/v1/user/downloads/${id}`);
   }
 
 }

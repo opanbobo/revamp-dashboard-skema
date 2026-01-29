@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, ViewChild } from '@angular/core';
 import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { ConfirmationService, MenuItem, MessageService, SortEvent } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ChipModule } from 'primeng/chip';
@@ -18,7 +18,7 @@ import { TagModule } from 'primeng/tag';
 import { TieredMenuModule } from 'primeng/tieredmenu';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
-import { debounceTime, distinctUntilChanged, forkJoin } from 'rxjs';
+import { debounceTime, distinctUntilChanged, forkJoin, Observable } from 'rxjs';
 import { ButtonSecondaryComponent } from '../../../core/components/button-secondary/button-secondary.component';
 import { IconInfoComponent } from '../../../core/components/icons/info/info.component';
 import { IconNewspaperComponent } from '../../../core/components/icons/newspaper/newspaper.component';
@@ -35,12 +35,15 @@ import { getUserFromLocalStorage } from '../../../shared/utils/AuthUtils';
 import { NEGATIVE_TONE, NEUTRAL_TONE, POSITIVE_TONE, TONE_MAP } from '../../../shared/utils/Constants';
 import { isEmpty, isValidEmail } from './../../../shared/utils/CommonUtils';
 import { CalendarModule } from 'primeng/calendar';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 const highlightKeywords = (content: string, keywords: string[]): string => {
   const cleanedKeywords = keywords.map((keyword) => keyword.replace(/"/g, ''));
   const regex = new RegExp(cleanedKeywords.join('|'), 'gi');
   return content.replace(regex, (match) => `<mark>${match}</mark>`);
 };
+
+type DownloadFormat = 'pdf' | 'excel' | 'docx';
 
 @Component({
   selector: 'app-newsindex',
@@ -60,6 +63,7 @@ const highlightKeywords = (content: string, keywords: string[]): string => {
     PaginatorModule,
     CommonModule,
     ConfirmPopupModule,
+    ConfirmDialogModule,
     DialogModule,
     FormsModule,
     ReactiveFormsModule,
@@ -132,15 +136,15 @@ export class NewsindexComponent {
   listAction: MenuItem[] = [
     {
       label: 'Download PDF',
-      command: () => this.downloadAsPdf(),
+      command: () => this.openDownloadDialog('pdf'),
     },
     {
-      label: 'Download DOC',
-      command: () => this.downloadAsDocs(),
+      label: 'Download DOCX',
+      command: () => this.openDownloadDialog('docx'),
     },
     {
       label: 'Download EXCEL',
-      command: () => this.downloadAsExcel(),
+      command: () => this.openDownloadDialog('excel'),
     },
     {
       label: 'Send to E-mail',
@@ -169,13 +173,20 @@ export class NewsindexComponent {
   order: string = 'asc';
   orderBy: string = 'datee';
 
+  showDownloadJobDialog = false;
+
+  jobNameCtrl = new FormControl('', Validators.required);
+
+  currentDownloadFormat: DownloadFormat | null = null;
+
   constructor(
     private articleService: ArticleService,
     private filterService: FilterService,
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
     private sanitizer: DomSanitizer,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private router: Router
   ) {
     this.categoriesForm = this.fb.group({
       categories: this.fb.array([])
@@ -514,51 +525,165 @@ export class NewsindexComponent {
     this.modalUpdateOpen = true;
   };
 
-  downloadAsPdf = () => {
-    this.isLoading = true;
-    this.articleService
-      .downloadPdfs(this.selectedArticles)
-      .subscribe(({ data }) => {
-        this.selectedArticles = [];
-        if (data.link) {
-          window.open(data.link, '_blank');
-        }
-      })
-      .add(() => {
-        this.isLoading = false;
-      });
-  };
+  // downloadAsPdf = () => {
+  //   if (!this.jobNameCtrl.value) return;
 
-  downloadAsDocs = () => {
-    this.isLoading = true;
-    this.articleService
-      .downloadDocs(this.selectedArticles)
-      .subscribe(({ data }) => {
-        this.selectedArticles = [];
-        if (data) {
-          window.open(data, '_blank');
-        }
-      })
-      .add(() => {
-        this.isLoading = false;
-      });
-  };
+  //   this.isLoading = true;
 
-  downloadAsExcel = () => {
-    this.isLoading = true;
-    this.articleService
-      .downloadSelectedExcel(
-        { ...this.filterService.filter },
-        this.selectedArticles,
-        this.searchForm.get('query')?.value ?? ''
-      )
-      .subscribe(({ data }) => {
-        window.open(data.file_url, '_blank')?.focus()
-      })
-      .add(() => {
-        this.isLoading = false;
-      });
-  }
+  //   this.articleService
+  //     .downloadPdfsV2(this.jobNameCtrl.value, this.selectedArticles)
+  //     .subscribe({
+  //       next: (res) => {
+  //         if (res.status === 'success') {
+  //           const jobId = res.data.id;
+
+  //           // Clear selection + close dialog
+  //           this.selectedArticles = [];
+  //           this.showJobDialog = false;
+
+  //           // Show toast first
+  //           this.messageService.add({
+  //             severity: 'success',
+  //             summary: 'Download Queued',
+  //             detail: res.message,
+  //           });
+
+  //           // Show redirect option popup
+  //           this.confirmationService.confirm({
+  //             message:
+  //               'Your PDF job has been queued successfully. Do you want to open the progress page now?',
+  //             header: 'Job Created',
+  //             icon: 'pi pi-check-circle',
+  //             acceptLabel: 'Yes, Redirect',
+  //             rejectLabel: 'No, Stay Here',
+
+  //             accept: () => {
+  //               this.router.navigate(['/dashboard/download']);
+  //             },
+
+  //             reject: () => {
+  //               // Do nothing (stay on current page)
+  //             },
+  //           });
+  //         }
+  //       },
+
+  //       error: () => {
+  //         this.messageService.add({
+  //           severity: 'error',
+  //           summary: 'Failed',
+  //           detail: 'Unable to queue download job.',
+  //         });
+  //       },
+  //     })
+  //     .add(() => {
+  //       this.isLoading = false;
+  //     });
+  // };
+
+  // downloadAsDocs = () => {
+  //   if (!this.docsJobNameCtrl.value) return;
+
+  //   this.isLoading = true;
+
+  //   this.articleService
+  //     .downloadDocsV2(this.docsJobNameCtrl.value, this.selectedArticles)
+  //     .subscribe({
+  //       next: (res) => {
+  //         if (res.status === 'success') {
+  //           // Reset UI
+  //           this.selectedArticles = [];
+  //           this.showDocsJobDialog = false;
+
+  //           // Toast
+  //           this.messageService.add({
+  //             severity: 'success',
+  //             summary: 'DOCX Job Queued',
+  //             detail: res.message,
+  //           });
+
+  //           // Optional redirect confirm
+  //           this.confirmationService.confirm({
+  //             header: 'DOCX Download Started',
+  //             message:
+  //               'Your DOCX job has been queued successfully.\nDo you want to open the Download page now?',
+  //             icon: 'pi pi-check-circle',
+
+  //             acceptLabel: 'Yes, Redirect',
+  //             rejectLabel: 'No, Stay Here',
+
+  //             accept: () => {
+  //               this.router.navigate(['/dashboard/download']);
+  //             },
+  //           });
+  //         }
+  //       },
+
+  //       error: () => {
+  //         this.messageService.add({
+  //           severity: 'error',
+  //           summary: 'Failed',
+  //           detail: 'Unable to queue DOCX download job.',
+  //         });
+  //       },
+  //     })
+  //     .add(() => {
+  //       this.isLoading = false;
+  //     });
+  // };
+
+
+  // downloadAsExcel = () => {
+  //   if (!this.excelJobNameCtrl.value) return;
+
+  //   this.isLoading = true;
+
+  //   this.articleService
+  //     .downloadExcelV2(this.excelJobNameCtrl.value, this.selectedArticles)
+  //     .subscribe({
+  //       next: (res) => {
+  //         if (res.status === 'success') {
+  //           // Clear selection + close dialog
+  //           this.selectedArticles = [];
+  //           this.showExcelJobDialog = false;
+
+  //           // Toast
+  //           this.messageService.add({
+  //             severity: 'success',
+  //             summary: 'Excel Job Queued',
+  //             detail: res.message,
+  //           });
+
+  //           // Optional redirect popup
+  //           this.confirmationService.confirm({
+  //             header: 'Excel Download Started',
+  //             message:
+  //               'Your Excel job has been queued successfully.\nDo you want to open the Download page now?',
+  //             icon: 'pi pi-check-circle',
+
+  //             acceptLabel: 'Yes, Redirect',
+  //             rejectLabel: 'No, Stay Here',
+
+  //             accept: () => {
+  //               this.router.navigate(['/dashboard/download']);
+  //             },
+  //           });
+  //         }
+  //       },
+
+  //       error: () => {
+  //         this.messageService.add({
+  //           severity: 'error',
+  //           summary: 'Failed',
+  //           detail: 'Unable to queue Excel download job.',
+  //         });
+  //       },
+  //     })
+  //     .add(() => {
+  //       this.isLoading = false;
+  //     });
+  // };
+
 
   sendMail() {
     this.isLoading = true;
@@ -623,4 +748,94 @@ export class NewsindexComponent {
   get rowCount() {
     return this.selectedTones.length;
   }
+
+  queueDownloadJob() {
+    if (!this.jobNameCtrl.value || !this.currentDownloadFormat) return;
+
+    this.isLoading = true;
+
+    let request$: Observable<any>;
+
+    // Pick correct endpoint based on format
+    switch (this.currentDownloadFormat) {
+      case 'pdf':
+        request$ = this.articleService.downloadPdfsV2(
+          this.jobNameCtrl.value,
+          this.selectedArticles
+        );
+        break;
+
+      case 'excel':
+        request$ = this.articleService.downloadExcelV2(
+          this.jobNameCtrl.value,
+          this.selectedArticles
+        );
+        break;
+
+      case 'docx':
+        request$ = this.articleService.downloadDocsV2(
+          this.jobNameCtrl.value,
+          this.selectedArticles
+        );
+        break;
+
+      default:
+        this.isLoading = false;
+        return;
+    }
+
+    request$
+      .subscribe({
+        next: (res) => {
+          if (res.status === 'success') {
+            // Reset UI
+            this.selectedArticles = [];
+            this.showDownloadJobDialog = false;
+
+            // Toast
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Job Queued',
+              detail: res.message,
+            });
+
+            // Optional redirect
+            this.confirmationService.confirm({
+              header: 'Download Started',
+              message:
+                'Your download job has been queued successfully.\nDo you want to open the Download page now?',
+              icon: 'pi pi-check-circle',
+
+              acceptLabel: 'Yes, Redirect',
+              rejectLabel: 'No, Stay Here',
+
+              accept: () => {
+                this.router.navigate(['/dashboard/download']);
+              },
+            });
+          }
+        },
+
+        error: () => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Failed',
+            detail: 'Unable to queue download job.',
+          });
+        },
+      })
+      .add(() => {
+        this.isLoading = false;
+        this.currentDownloadFormat = null;
+      });
+  }
+
+
+  openDownloadDialog(format: DownloadFormat) {
+    this.currentDownloadFormat = format;
+    this.showDownloadJobDialog = true;
+
+    this.jobNameCtrl.reset();
+  }
+
 }

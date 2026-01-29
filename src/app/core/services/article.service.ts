@@ -337,4 +337,74 @@ export class ArticleService {
   deleteCategory(req: { article_id: string; category_id: string }): Observable<any> {
     return this.http.post(`${this.baseUrl}/v1/user/article/delete/category`, req);
   }
+
+
+  // New Download Endpoint
+
+  downloadPdfsV2(
+    jobName: string,
+    articles: Article[]
+  ): Observable<{
+    code: number;
+    status: string;
+    message: string;
+    data: {
+      id: string;
+      status: string;
+    };
+  }> {
+    const article_ids = articles.map((a) => a.article_id);
+
+    return this.http.post<any>(
+      `${this.baseUrl}/v1/user/downloads/news-index/pdfs`,
+      {
+        name: jobName,
+        article_ids,
+        doc_type: 1,
+      }
+    );
+  }
+
+  downloadExcelV2(
+    jobName: string,
+    articles: Article[]
+  ): Observable<{
+    code: number;
+    status: string;
+    message: string;
+    data: {
+      id: string;
+      status: string;
+    };
+  }> {
+    return this.http.post<any>(
+      `${this.baseUrl}/v1/user/downloads/news-index/excel`,
+      {
+        name: jobName,
+        article_ids: articles.map((a) => a.article_id),
+      }
+    );
+  }
+
+  downloadDocsV2(
+    jobName: string,
+    articles: Article[]
+  ): Observable<{
+    code: number;
+    status: string;
+    message: string;
+    data: {
+      id: string;
+      status: string;
+    };
+  }> {
+    return this.http.post<any>(
+      `${this.baseUrl}/v1/user/downloads/news-index/docxs`,
+      {
+        name: jobName,
+        article_ids: articles.map((a) => a.article_id),
+      }
+    );
+  }
+
 }
