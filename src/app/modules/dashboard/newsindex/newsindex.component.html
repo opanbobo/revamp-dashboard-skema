@@ -313,6 +313,15 @@
       </div>
 
       <div class="col-6 flex flex-column gap-2">
+        <label for="bcc" class="font-semibold text-sm">
+          BCC (Optional)
+        </label>
+
+        <input pInputText id="bcc" placeholder="bcc1@mail.com, bcc2@mail.com" [formControl]="bccMailCtrl"
+          class="w-full" />
+      </div>
+
+      <div class="col-6 flex flex-column gap-2">
         <label for="date" class="font-semibold text-sm">Date (Optional)</label>
         <p-calendar [(ngModel)]="sendDate" inputId="startDate" [showButtonBar]="false" appendTo="body" showIcon="true"
           [iconDisplay]="'input'" [inputStyle]="{ backgroundColor: 'var(--bg-color)' }">
@@ -368,47 +377,31 @@
 
   <p-footer>
     <p-button (click)="cancelSendMail()" label="Cancel" [outlined]="true"></p-button>
-    <p-button (click)="sendMail()" label="Send Email" [disabled]="!isValidEmail(sendMailCtrl.value)"></p-button>
+    <p-button (click)="sendMail()" label="Send Email" [disabled]="
+    !isValidEmail(sendMailCtrl.value) ||
+    !isValidOptionalEmail(bccMailCtrl.value)
+  ">
+    </p-button>
   </p-footer>
 </p-dialog>
 
-<p-dialog
-  header="Download Job"
-  [(visible)]="showDownloadJobDialog"
-  [modal]="true"
-  [style]="{ width: '30rem' }"
->
+<p-dialog header="Download Job" [(visible)]="showDownloadJobDialog" [modal]="true" [style]="{ width: '30rem' }">
   <div class="flex flex-column gap-3">
     <label class="font-semibold text-sm">
       Job Name ({{ currentDownloadFormat | uppercase }})
     </label>
 
-    <input
-      pInputText
-      placeholder="Example: Batch 1"
-      [formControl]="jobNameCtrl"
-    />
+    <input pInputText placeholder="Example: Batch 1" [formControl]="jobNameCtrl" />
 
-    <small
-      class="text-red-500"
-      *ngIf="jobNameCtrl.invalid && jobNameCtrl.touched"
-    >
+    <small class="text-red-500" *ngIf="jobNameCtrl.invalid && jobNameCtrl.touched">
       Job Name is required
     </small>
   </div>
 
   <ng-template pTemplate="footer">
-    <p-button
-      label="Cancel"
-      [outlined]="true"
-      (click)="showDownloadJobDialog = false"
-    ></p-button>
+    <p-button label="Cancel" [outlined]="true" (click)="showDownloadJobDialog = false"></p-button>
 
-    <p-button
-      label="Start Job"
-      icon="pi pi-check"
-      [disabled]="jobNameCtrl.invalid"
-      (click)="queueDownloadJob()"
-    ></p-button>
+    <p-button label="Start Job" icon="pi pi-check" [disabled]="jobNameCtrl.invalid"
+      (click)="queueDownloadJob()"></p-button>
   </ng-template>
 </p-dialog>

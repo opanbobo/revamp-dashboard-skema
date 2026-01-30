@@ -252,15 +252,22 @@ export class ArticleService {
 
   sendMail(
     emails?: string,
+    bcc?: string,
     articles?: Article[],
     date?: Date | string | null,
     articleTitleList?: Record<string, string[]>
   ) {
     const payload: any = {};
 
-    // email (optional, backward compatible)
     if (emails) {
       payload.email = emails
+        .split(',')
+        .map(e => e.trim())
+        .filter(Boolean)
+        .join(', ');
+    }
+    if (bcc) {
+      payload.bcc = bcc
         .split(',')
         .map(e => e.trim())
         .filter(Boolean)
@@ -277,7 +284,7 @@ export class ArticleService {
       payload.article_title_list = articleTitleList;
     }
 
-    // existing article id payload (optional, backward compatible)
+    // articles payload (optional)
     if (articles && articles.length) {
       payload.data = articles.map(v => ({
         article_id: v.article_id,

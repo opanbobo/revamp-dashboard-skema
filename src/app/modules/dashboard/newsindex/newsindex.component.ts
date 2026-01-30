@@ -108,6 +108,7 @@ export class NewsindexComponent {
   availableCategories: Category[] = [];
 
   sendMailCtrl: FormControl = new FormControl('', Validators.required);
+  bccMailCtrl = new FormControl('');
   editedValues = this.fb.group({
     title: '',
     issue: '',
@@ -689,6 +690,7 @@ export class NewsindexComponent {
     this.isLoading = true;
     this.articleService.sendMail(
       this.sendMailCtrl.value,
+      this.bccMailCtrl.value ?? undefined,
       this.selectedArticles,
       this.sendDate,
       this.buildArticleTitleListFromForm()
@@ -717,6 +719,7 @@ export class NewsindexComponent {
 
   private resetSendMailForm(): void {
     this.sendMailCtrl.reset('');
+    this.bccMailCtrl.reset('');
     this.sendDate = null;
     this.selectedArticles = [];
     const categoriesArray = this.categoriesForm.get('categories') as FormArray;
@@ -731,6 +734,11 @@ export class NewsindexComponent {
     if (isEmpty(emails)) return false;
     return emails.split(',').every((v) => isValidEmail(v.trim()));
   }
+
+  isValidOptionalEmail(emails: string | null): boolean {
+  if (!emails || emails.trim() === '') return true;
+  return this.isValidEmail(emails);
+}
 
   openPreview(article: Article) {
     window.open(article.preview_link, '_blank');
