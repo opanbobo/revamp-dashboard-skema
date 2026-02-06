@@ -96,12 +96,13 @@ export class DownloadComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit(): void {
-    this.filter = this.filterService.subscribe(() => {
-      console.log('On init, reloading downloads');
-      this.page = 0;
-      this.first = 0;
-      this.loadData();
-    });
+    // this.filter = this.filterService.subscribe(() => {
+    //   console.log('On init, reloading downloads');
+    //   this.page = 0;
+    //   this.first = 0;
+    //   this.loadData();
+    // });
+    this.loadData();
   }
 
   ngOnDestroy(): void {
@@ -115,31 +116,28 @@ export class DownloadComponent implements OnInit, OnDestroy {
     this.isLoading = true;
 
     const keyword = (this.searchForm?.name || '').trim();
-    
-    let formattedStartDate: string | undefined;
-    let formattedEndDate: string | undefined;
-    
-    if (this.startDate) {
-      formattedStartDate = this.formatDate(this.startDate, '00:00:00');
-    }
-    
-    if (this.endDate) {
-      formattedEndDate = this.formatDate(this.endDate, '23:59:59');
-    }
+
+    const now = new Date();
+
+    const start = new Date(now);
+    start.setMonth(start.getMonth() - 1);
+
+    const formattedStartDate = this.formatDate(start, '00:00:00');
+    const formattedEndDate = this.formatDate(now, '23:59:59');
 
     this.downloadService.getDownloads({
       term: keyword,
       ...(this.selectedStatus && { status: this.selectedStatus }),
-      ...(formattedStartDate && { start_date: formattedStartDate }),
-      ...(formattedEndDate && { end_date: formattedEndDate }),
+      start_date: formattedStartDate,
+      end_date: formattedEndDate,
       page: this.page + 1,
-      limit: this.rows,
-      ...this.filterService.filter
+      limit: this.rows
     }).subscribe({
       next: (res) => this.handleResponse(res),
       error: (err) => this.handleError(err)
     });
   }
+
 
   handleResponse(res: any): void {
     console.log('Download data response:', res);
@@ -168,78 +166,78 @@ export class DownloadComponent implements OnInit, OnDestroy {
   }
 
   openRetryDialog(download: Download): void {
-  this.selectedDownload = download;
-  this.retryDialogOpen = true;
-}
+    this.selectedDownload = download;
+    this.retryDialogOpen = true;
+  }
 
-closeRetryDialog(): void {
-  this.retryDialogOpen = false;
-  this.selectedDownload = null;
-}
+  closeRetryDialog(): void {
+    this.retryDialogOpen = false;
+    this.selectedDownload = null;
+  }
 
-confirmRetryDownload(): void {
-  if (!this.selectedDownload) return;
+  confirmRetryDownload(): void {
+    if (!this.selectedDownload) return;
 
-  this.isRetrying = true;
+    this.isRetrying = true;
 
-  this.downloadService.retryDownload(this.selectedDownload.id).subscribe({
-    next: () => {
-      this.messageService.add({
-        severity: 'success',
-        summary: 'Success',
-        detail: 'Job has been queued for retry.'
-      });
-      this.closeRetryDialog();
-      this.loadData();
-    },
-    error: () => {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Retry failed.'
-      });
-      this.closeRetryDialog()
-    },
-    complete: () => (this.isRetrying = false)
-  });
-}
+    this.downloadService.retryDownload(this.selectedDownload.id).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Job has been queued for retry.'
+        });
+        this.closeRetryDialog();
+        this.loadData();
+      },
+      error: () => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Retry failed.'
+        });
+        this.closeRetryDialog()
+      },
+      complete: () => (this.isRetrying = false)
+    });
+  }
 
-openDeleteDialog(download: Download): void {
-  this.selectedDownload = download;
-  this.deleteDialogOpen = true;
-}
+  openDeleteDialog(download: Download): void {
+    this.selectedDownload = download;
+    this.deleteDialogOpen = true;
+  }
 
-closeDeleteDialog(): void {
-  this.deleteDialogOpen = false;
-  this.selectedDownload = null;
-}
+  closeDeleteDialog(): void {
+    this.deleteDialogOpen = false;
+    this.selectedDownload = null;
+  }
 
-confirmDeleteDownload(): void {
-  if (!this.selectedDownload) return;
+  confirmDeleteDownload(): void {
+    if (!this.selectedDownload) return;
 
-  this.isDeleting = true;
+    this.isDeleting = true;
 
-  this.downloadService.deleteDownload(this.selectedDownload.id).subscribe({
-    next: () => {
-      this.messageService.add({
-        severity: 'success',
-        summary: 'Deleted',
-        detail: 'Delete data success'
-      });
-      this.closeDeleteDialog();
-      this.loadData();
-    },
-    error: () => {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Delete failed.'
-      });
-      this.closeDeleteDialog()
-    },
-    complete: () => (this.isDeleting = false)
-  });
-}
+    this.downloadService.deleteDownload(this.selectedDownload.id).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Deleted',
+          detail: 'Delete data success'
+        });
+        this.closeDeleteDialog();
+        this.loadData();
+      },
+      error: () => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Delete failed.'
+        });
+        this.closeDeleteDialog()
+      },
+      complete: () => (this.isDeleting = false)
+    });
+  }
 
 
   onPageChange(event: any): void {
@@ -287,16 +285,16 @@ confirmDeleteDownload(): void {
   }
 
   downloadFile(download: any): void {
-  if (!download.file_url) {
-    this.messageService.add({
-      severity: 'warn',
-      summary: 'Not Ready',
-      detail: 'File is not available yet.',
-    });
-    return;
+    if (!download.file_url) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Not Ready',
+        detail: 'File is not available yet.',
+      });
+      return;
+    }
+    window.open(download.file_url, '_blank')?.focus();
   }
-  window.open(download.file_url, '_blank')?.focus();
-}
 
 
   formatDateTime(dateString: string): string {

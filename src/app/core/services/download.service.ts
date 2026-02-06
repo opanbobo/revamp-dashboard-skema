@@ -17,21 +17,9 @@ export class DownloadService {
   getDownloads(filter: FilterRequestPayload): Observable<DownloadResponse> {
     let params = new HttpParams();
 
-    // Add all filter properties to params
     Object.entries(filter).forEach(([key, value]) => {
       if (value !== null && value !== undefined && value !== '') {
-        // Handle date fields specially
-        if (key === 'start_date' || key === 'end_date') {
-          const timeKey = key === 'start_date' ? 'start_time' : 'end_time';
-          const defaultTime = key === 'start_date' ? '00:00:00' : '23:59:59';
-          const timeValue = filter[timeKey] || defaultTime;
-
-          // Combine date and time
-          params = params.set(key, `${String(value)} ${timeValue}`);
-        } else if (key !== 'start_time' && key !== 'end_time') {
-          // Skip time fields as they're combined with dates
-          params = params.set(key, String(value));
-        }
+        params = params.set(key, String(value));
       }
     });
 
