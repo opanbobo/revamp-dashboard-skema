@@ -64,6 +64,7 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
   ];
 
   activeTab = this.tabItems[0];
+  visibilityBarChartHeight = '300px';
 
   onActiveItemChange(event: any) {
     this.activeTab = event;
@@ -98,8 +99,6 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
     };
   }
 
-  /* ================= Lifecycle ================= */
-
   ngOnInit(): void {
     this.initChartOpts();
 
@@ -115,8 +114,6 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
     this.subscriptions.unsubscribe();
   }
 
-  /* ================= Data ================= */
-
   getData(): void {
     this.isLoading = true;
     this.isDrilldownVisibilityChart = false;
@@ -126,10 +123,30 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
       .subscribe((res) => {
         this.isLoading = false;
         this.initChartData(res.data);
+        this.calculateBarChartHeight();
       });
 
     this.subscriptions.add(sub);
   }
+
+  private calculateBarChartHeight(): void {
+    const barCount =
+      this.visibilityBarComparisonData?.labels?.length ?? 0;
+
+    const perBarPx = 30;   
+    const minHeight = 200;
+    const maxHeight = 1600;
+
+    const calculatedHeight = barCount * perBarPx;
+
+    this.visibilityBarChartHeight =
+      `${Math.min(maxHeight, Math.max(minHeight, calculatedHeight))}px`;
+
+    console.log('Bar count:', barCount);
+    console.log('Bar chart height:', this.visibilityBarChartHeight);
+  }
+
+
 
   initChartData(mediaVisibility: MediaVisibility[]): void {
     if (!mediaVisibility.length) return;
@@ -157,8 +174,6 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
 
     this.visibilityBarComparisonData = visibilityBarComparisonData;
   }
-
-  /* ================= Interaction ================= */
 
   onVisibilityPieSelect(value: any, type: string): void {
     let mediaName;
@@ -235,8 +250,6 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
     this.subscriptions.add(sub);
   }
 
-  /* ================= Chart Options ================= */
-
   initChartOpts(): void {
     const documentStyle = getComputedStyle(document.documentElement);
     const textColorSecondary = documentStyle.getPropertyValue('--text-color-secondary');
@@ -292,6 +305,15 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
     this.visibilityBarComparisonOpts = {
       indexAxis: 'y',
       maintainAspectRatio: false,
+      responsive: false,
+      layout: {
+        padding: {
+          left: 20,
+          right: 30,
+          top: 20,
+          bottom: 20
+        }
+      },
       plugins: {
         legend: {
           position: 'bottom',
@@ -300,10 +322,42 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
           },
         },
       },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: {
+            color: textColorSecondary,
+          },
+          grid: {
+            color: surfaceBorder
+          }
+        },
+        y: {
+          ticks: {
+            color: textColorSecondary,
+            autoSkip: false,
+            maxRotation: 0,
+            minRotation: 0,
+            font: {
+              size: 12 
+            },
+            padding: 10
+          },
+          grid: {
+            display: false
+          },
+          afterFit: (scale: any) => {
+            scale.width = 280; 
+          }
+        }
+      },
+      elements: {
+        bar: {
+          borderWidth: 0,
+        }
+      }
     };
   }
-
-  /* ================= Data Transformation ================= */
 
   getChartData(mediaVisibility: MediaVisibility[]) {
     const lineDatasets: any[] = [];

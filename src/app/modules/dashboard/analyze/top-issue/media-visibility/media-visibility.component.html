@@ -37,9 +37,8 @@
                 </p-chart>
               </div>
 
-              <div *ngIf="activeTab?.key === 'bar'" style="width: 100%; max-width: 700px">
-                <p-chart type="bar" [data]="visibilityBarComparisonData" [options]="visibilityBarComparisonOpts"
-                  style="height: 300px; width: 100%">
+              <div *ngIf="activeTab?.key === 'bar'" style="width: 100%;">
+                <p-chart type="bar" [height]="visibilityBarChartHeight" [data]="visibilityBarComparisonData" [options]="visibilityBarComparisonOpts">
                 </p-chart>
               </div>
             </div>
