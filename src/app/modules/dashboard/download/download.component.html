@@ -52,8 +52,17 @@
 
                             <td>
                                 <div class="flex align-items-center gap-2">
-                                    <p-tag [value]="download.status" [severity]="getStatusSeverity(download.status)">
+                                    <ng-template #errorTooltip>
+                                        <div class="custom-error-tooltip">
+                                            {{ download.error_message }}
+                                        </div>
+                                    </ng-template>
+
+                                    <p-tag [value]="download.status" [severity]="getStatusSeverity(download.status)"
+                                        [pTooltip]="download.status === 'FAILED' ? errorTooltip : undefined"
+                                        tooltipPosition="top" [tooltipDisabled]="download.status !== 'FAILED'">
                                     </p-tag>
+
                                 </div>
                             </td>
 
