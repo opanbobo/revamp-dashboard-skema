@@ -36,6 +36,7 @@ import { NEGATIVE_TONE, NEUTRAL_TONE, POSITIVE_TONE, TONE_MAP } from '../../../s
 import { isEmpty, isValidEmail } from './../../../shared/utils/CommonUtils';
 import { CalendarModule } from 'primeng/calendar';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { HttpErrorResponse } from '@angular/common/http';
 
 const highlightKeywords = (content: string, keywords: string[]): string => {
   const cleanedKeywords = keywords.map((keyword) => keyword.replace(/"/g, ''));
@@ -736,9 +737,9 @@ export class NewsindexComponent {
   }
 
   isValidOptionalEmail(emails: string | null): boolean {
-  if (!emails || emails.trim() === '') return true;
-  return this.isValidEmail(emails);
-}
+    if (!emails || emails.trim() === '') return true;
+    return this.isValidEmail(emails);
+  }
 
   openPreview(article: Article) {
     window.open(article.preview_link, '_blank');
@@ -824,11 +825,18 @@ export class NewsindexComponent {
           }
         },
 
-        error: () => {
+        error: (err: HttpErrorResponse) => {
+          let detailMessage = 'error message';
+          if (err.status === 0) {
+            detailMessage = 'Network error. Please check your connection.';
+          } else if (err.error?.message) {
+            detailMessage = err.error.message;
+          }
+
           this.messageService.add({
             severity: 'error',
             summary: 'Failed',
-            detail: 'Unable to queue download job.',
+            detail: detailMessage,
           });
         },
       })

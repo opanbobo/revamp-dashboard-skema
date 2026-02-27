@@ -38,6 +38,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { Toast, ToastModule } from 'primeng/toast';
 import { ConfirmPopupModule } from 'primeng/confirmpopup';
 import { InputTextModule } from 'primeng/inputtext';
+import { HttpErrorResponse } from '@angular/common/http';
 
 Chart.register(TreemapController, TreemapElement);
 
@@ -287,56 +288,56 @@ export class TopIssueComponent {
   };
 
   downloadPpt = () => {
-  // force validation message if empty
-  if (this.jobNameCtrl.invalid) {
-    this.jobNameCtrl.markAsTouched();
-    return;
-  }
+    // force validation message if empty
+    if (this.jobNameCtrl.invalid) {
+      this.jobNameCtrl.markAsTouched();
+      return;
+    }
 
-  this.isDownloading = true;
+    this.isDownloading = true;
 
-  const payload = {
-    name: this.jobNameCtrl.value!,
-    images: this.images.map((img) => img.image),
+    const payload = {
+      name: this.jobNameCtrl.value!,
+      images: this.images.map((img) => img.image),
+    };
+
+    this.analyzeService.downloadPptV2(payload).subscribe({
+      next: (res) => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Queued',
+          detail: `PowerPoint job queued (ID: ${res.data.id})`,
+        });
+
+        this.downloadConfirmModalOpen = false;
+        this.jobNameCtrl.reset();
+        this.confirmationService.confirm({
+          message:
+            'PowerPoint job has been queued successfully. Open the download progress page?',
+          header: 'Job Created',
+          icon: 'pi pi-check-circle',
+          acceptLabel: 'Yes',
+          rejectLabel: 'No',
+
+          accept: () => {
+            this.router.navigate(['/dashboard/download']);
+          },
+        });
+      },
+
+      error: () => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Failed',
+          detail: 'Unable to queue PowerPoint download',
+        });
+      },
+
+      complete: () => {
+        this.isDownloading = false;
+      },
+    });
   };
-
-  this.analyzeService.downloadPptV2(payload).subscribe({
-    next: (res) => {
-      this.messageService.add({
-        severity: 'success',
-        summary: 'Queued',
-        detail: `PowerPoint job queued (ID: ${res.data.id})`,
-      });
-
-      this.downloadConfirmModalOpen = false;
-      this.jobNameCtrl.reset();
-      this.confirmationService.confirm({
-        message:
-          'PowerPoint job has been queued successfully. Open the download progress page?',
-        header: 'Job Created',
-        icon: 'pi pi-check-circle',
-        acceptLabel: 'Yes',
-        rejectLabel: 'No',
-
-        accept: () => {
-          this.router.navigate(['/dashboard/download']);
-        },
-      });
-    },
-
-    error: () => {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Failed',
-        detail: 'Unable to queue PowerPoint download',
-      });
-    },
-
-    complete: () => {
-      this.isDownloading = false;
-    },
-  });
-};
 
   onCheckedAllColumn = (isChecked: boolean) => {
     this.selectedColumns = isChecked ? [...this.columnsOptions] : [];
@@ -416,11 +417,18 @@ export class TopIssueComponent {
           }
         },
 
-        error: () => {
+        error: (err: HttpErrorResponse) => {
+          let detailMessage = 'error message';
+          if (err.status === 0) {
+            detailMessage = 'Network error. Please check your connection.';
+          } else if (err.error?.message) {
+            detailMessage = err.error.message;
+          }
+
           this.messageService.add({
             severity: 'error',
             summary: 'Failed',
-            detail: 'Unable to queue Excel job.',
+            detail: detailMessage,
           });
         },
       })
