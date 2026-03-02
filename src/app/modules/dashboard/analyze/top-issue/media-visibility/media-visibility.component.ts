@@ -58,6 +58,9 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
   isLoading = false;
   isDrilldownVisibilityChart = false;
 
+  maxLineValue = 0;
+  maxBarValue = 0;
+
   tabItems = [
     { label: 'Pie Chart', key: 'pie' },
     { label: 'Bar Comparison', key: 'bar' },
@@ -133,7 +136,7 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
     const barCount =
       this.visibilityBarComparisonData?.labels?.length ?? 0;
 
-    const perBarPx = 30;   
+    const perBarPx = 30;
     const minHeight = 200;
     const maxHeight = 1600;
 
@@ -171,6 +174,12 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
       labels: lineLabels,
       datasets: visibilityBarDatasets,
     };
+
+    this.maxLineValue = this.getMaxValue(lineDatasets);
+    this.maxBarValue = this.getMaxValue(visibilityBarDatasets);
+
+    console.log('Max line value:', this.maxLineValue);
+    console.log('Max bar value:', this.maxBarValue);
 
     this.visibilityBarComparisonData = visibilityBarComparisonData;
   }
@@ -339,7 +348,7 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
             maxRotation: 0,
             minRotation: 0,
             font: {
-              size: 12 
+              size: 12
             },
             padding: 10
           },
@@ -347,7 +356,7 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
             display: false
           },
           afterFit: (scale: any) => {
-            scale.width = 280; 
+            scale.width = 280;
           }
         }
       },
@@ -412,5 +421,24 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
         }],
       },
     };
+  }
+
+  private getMaxValue(datasets: any[]): number {
+    return Math.max(
+      ...datasets.flatMap(ds => ds.data)
+    );
+  }
+
+  get lineChartHeight(): string {
+    const baseHeight = 300;
+    const ratio = 0.5;      // 1400 → 700
+    const maxHeight = 1000;
+
+    const computed = Math.min(
+      Math.max(this.maxLineValue * ratio, baseHeight),
+      maxHeight
+    );
+
+    return `${computed}px`;
   }
 }
