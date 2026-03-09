@@ -11,6 +11,7 @@ import { WartawanMedia } from '../../../core/models/media.model';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FileUploadComponent } from '../../../core/components/file-upload/file-upload.component';
 import { ToastModule } from 'primeng/toast';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-share',
@@ -78,7 +79,6 @@ export class ShareComponent {
     let images: any[] = [];
 
     try {
-      // Keep image handling exactly as-is
       if (image.value && image.value.length > 0) {
         for (const file of image.value) {
           const base64 = await this.file2Base64(file);
@@ -96,12 +96,14 @@ export class ShareComponent {
           headline: headline.value!,
           subline: subline.value!,
           images: images.length > 0 ? images : undefined,
-
-          // ✅ FIX: always get latest stable media selection
           media_names: this.formGroup.getRawValue().media,
-
           client_email: cc.value ?? undefined,
         })
+        .pipe(
+          finalize(() => {
+            this.isSending = false;
+          })
+        )
         .subscribe({
           next: () => {
             this.messageService.add({
@@ -121,10 +123,6 @@ export class ShareComponent {
                 err?.error?.message ||
                 'Email could not be sent. Please try again later.',
             });
-          },
-
-          complete: () => {
-            this.isSending = false;
           },
         });
     } catch (conversionError) {
