@@ -1,11 +1,20 @@
 import { Bucket } from './tone.model';
 
 export interface MediaVisibility {
+  key: string;
+  doc_count: number;
+
   category_id_per_day: {
     buckets: Bucket[];
   };
-  doc_count: number;
-  key: string;
+
+  sentiments: Sentiment[];
+}
+
+export interface Sentiment {
+  name: string;
+  tone: number;
+  value: number;
 }
 
 export interface MediaVisibilityResponse {

@@ -54,6 +54,9 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
   visibilityBarComparisonOpts: any;
   visibilityBarComparisonPlugins = [htmlLegendPlugin];
 
+  sentimentBarData: any;
+  sentimentBarOpts: any;
+
   analyzeState: Observable<AnalyzeState>;
   isLoading = false;
   isDrilldownVisibilityChart = false;
@@ -64,6 +67,7 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
   tabItems = [
     { label: 'Pie Chart', key: 'pie' },
     { label: 'Bar Comparison', key: 'bar' },
+    { label: 'Sentiment Analysis', key: 'sentiment' },
   ];
 
   activeTab = this.tabItems[0];
@@ -161,6 +165,7 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
       pieDatasets,
       visibilityBarDatasets,
       visibilityBarComparisonData,
+      sentimentBarData
     } = this.getChartData(mediaVisibility);
 
     this.visibilityPieData = { labels: pieLabels, datasets: pieDatasets };
@@ -182,6 +187,7 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
     console.log('Max bar value:', this.maxBarValue);
 
     this.visibilityBarComparisonData = visibilityBarComparisonData;
+    this.sentimentBarData = sentimentBarData;
   }
 
   onVisibilityPieSelect(value: any, type: string): void {
@@ -366,6 +372,54 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
         }
       }
     };
+
+    this.sentimentBarOpts = {
+      indexAxis: 'y',
+      responsive: true,
+
+      plugins: {
+        legend: {
+          position: 'top'
+        }
+      },
+
+      scales: {
+        x: {
+          stacked: true,
+          max: 100,
+          grid: {
+            display: false
+          },
+          ticks: {
+            callback: function (value: any) {
+              return value + '%';
+            }
+          }
+        },
+
+        y: {
+          stacked: true,
+          grid: {
+            display: false
+          },
+          ticks: {
+            font: {
+              size: 12
+            }
+          },
+
+          afterFit: (scale: any) => {
+            scale.width = 280;
+          }
+        }
+      },
+
+      elements: {
+        bar: {
+          borderRadius: 0
+        }
+      }
+    };
   }
 
   getChartData(mediaVisibility: MediaVisibility[]) {
@@ -405,6 +459,53 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
       date: v.category_id_per_day.buckets.map(b => b.key_as_string),
     }));
 
+    const documentStyle = getComputedStyle(document.documentElement);
+
+    const positiveColor = documentStyle.getPropertyValue('--positive-color');
+    const negativeColor = documentStyle.getPropertyValue('--negative-color');
+    const neutralColor = '#9CA3AF';
+
+    const positiveData: number[] = [];
+    const neutralData: number[] = [];
+    const negativeData: number[] = [];
+
+    mediaVisibility.forEach(media => {
+
+      const positive = media.sentiments.find(s => s.tone === 1)?.value ?? 0;
+      const neutral = media.sentiments.find(s => s.tone === 0)?.value ?? 0;
+      const negative = media.sentiments.find(s => s.tone === -1)?.value ?? 0;
+
+      const total = positive + neutral + negative;
+
+      positiveData.push((positive / total) * 100);
+      neutralData.push((neutral / total) * 100);
+      negativeData.push((negative / total) * 100);
+    });
+
+    const sentimentBarData = {
+      labels: mediaVisibility.map(v => v.key),
+      datasets: [
+        {
+          label: 'Positive',
+          backgroundColor: positiveColor,
+          data: positiveData,
+          stack: 'sentiment'
+        },
+        {
+          label: 'Neutral',
+          backgroundColor: neutralColor,
+          data: neutralData,
+          stack: 'sentiment'
+        },
+        {
+          label: 'Negative',
+          backgroundColor: negativeColor,
+          data: negativeData,
+          stack: 'sentiment'
+        }
+      ]
+    };
+
     return {
       lineLabels: labels,
       lineDatasets,
@@ -420,6 +521,7 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
           data: mediaVisibility.map(v => v.doc_count),
         }],
       },
+      sentimentBarData
     };
   }
 
