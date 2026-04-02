@@ -7,6 +7,7 @@ import { CategoryResponse } from '../models/category.model';
 import { HighlightsResponse } from '../models/highlights.model';
 import { FilterRequestPayload } from '../models/request.model';
 import { BASE_URL } from './../api/index';
+import { generateNonce, generateTimestamp, generateSignature } from '../../shared/utils/SignatureUtils';
 
 @Injectable({
   providedIn: 'root',
@@ -133,6 +134,42 @@ export class ArticleService {
       ...filter,
     });
   }
+
+  searchArticlesV4(
+    filter: FilterRequestPayload
+  ): Observable<{ totalItems: number; results: Article[] }> {
+
+    // 1. Normalize & map legacy payload → API v4 payload
+    const v4Params = {
+      term: filter.term ?? '',
+      start_date: `${filter.start_date}T00:00:00`,
+      end_date: `${filter.end_date}T23:00:00`,
+      page: filter.page ?? 0,
+      max_size: filter.maxSize ?? filter.size ?? 8,
+      media_category: filter.media_category ?? 'all',
+      search_field: filter.search_field ?? 'content'
+    };
+
+    // 2. Generate signing fields
+    const nonce = generateNonce();
+    const timestamp = generateTimestamp();
+    const signature = generateSignature(v4Params, timestamp, nonce);
+
+    // 3. Final request body
+    const body = {
+      ...v4Params,
+      signature,
+      timestamp,
+      nonce
+    };
+
+    // 4. Send request (Authorization handled by interceptor)
+    return this.http.post<{ totalItems: number; results: Article[] }>(
+      `${this.baseUrl}/v4/search/`,
+      body
+    );
+  }
+
 
   downloadDocs(articles: Article[]): Observable<{ data: string }> {
     const user = getUserFromLocalStorage();
