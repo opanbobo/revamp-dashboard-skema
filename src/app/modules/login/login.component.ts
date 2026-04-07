@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
@@ -11,7 +11,7 @@ import * as AuthActions from '../../core/store/auth/auth.actions';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { AppState } from '../../core/store';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { AuthState } from '../../core/store/auth/auth.reducer';
 import { selectAuthState } from '../../core/store/auth/auth.selectors';
 import { getUserFromLocalStorage } from '../../shared/utils/AuthUtils';
@@ -24,84 +24,94 @@ import { authCodeFlowConfig } from './auth.config';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [RouterOutlet, CardModule, ButtonModule, InputTextModule, PasswordModule, CheckboxModule, ReactiveFormsModule, ToastModule],
+  imports: [
+    RouterOutlet,
+    CardModule,
+    ButtonModule,
+    InputTextModule,
+    PasswordModule,
+    CheckboxModule,
+    ReactiveFormsModule,
+    ToastModule
+  ],
   providers: [MessageService],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss',
 })
-export class LoginComponent implements OnInit {
-  loginForm = new FormGroup({
-    username: new FormControl(null, Validators.required),
-    password: new FormControl(null, Validators.required),
-  });
-  isLoading: boolean = false;
+export class LoginComponent implements OnInit, OnDestroy {
 
-  authState: Observable<AuthState>;
+  loginForm = new FormGroup({
+    username: new FormControl<string | null>(null, Validators.required),
+    password: new FormControl<string | null>(null, Validators.required),
+  });
+
+  isLoading = false;
+  authState$: Observable<AuthState>;
+
+  private subscriptions = new Subscription();
 
   constructor(
     private store: Store<AppState>,
-    private router: Router,
     private messageService: MessageService,
     private keycloakService: KeycloakService,
     private oauthService: OAuthService
   ) {
-    this.authState = this.store.select(selectAuthState);
-    const data = window.localStorage.getItem('useDarkMode');
+    this.authState$ = this.store.select(selectAuthState);
+
+    // Dark mode handling (UI-only concern)
+    const data = localStorage.getItem('useDarkMode');
     if (data) {
-      const checked = JSON.parse(data);
-      if (checked) window.document.body.classList.add('dark');
-      else window.document.body.classList.remove('dark');
+      document.body.classList.toggle('dark', JSON.parse(data));
     }
   }
 
   ngOnInit(): void {
-    this.authState.subscribe((state) => {
-      this.isLoading = state.isLoading;
+    // React ONLY to UI-relevant auth state
+    this.subscriptions.add(
+      this.authState$.subscribe((state) => {
+        this.isLoading = state.isLoading;
 
-      if (state.user || getUserFromLocalStorage()) {
-        if (!state.user?.menu.includes('overview')){
-          this.router.navigateByUrl(`/dashboard/${state.user?.menu[0]}`);
-          return;
-        } 
-        this.router.navigateByUrl('/');
-      }
+        if (state.error) {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: state.error,
+          });
+        }
+      })
+    );
 
-      if (state.error) {
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: state.error,
-        });
-      }
-    });
-
-
-
+    // OAuth initialization (safe)
     this.oauthService.configure(authCodeFlowConfig);
-    this.oauthService.loadDiscoveryDocument();
+    this.oauthService.loadDiscoveryDocumentAndTryLogin();
   }
 
-  login() {
-    const { username, password } = this.loginForm.value;
+  login(): void {
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
+
+    const { username, password } = this.loginForm.getRawValue();
+
     this.store.dispatch(setFilter({ filter: initialState }));
-    this.store.dispatch(AuthActions.login({ username: username!, password: password! }));
+    this.store.dispatch(
+      AuthActions.login({
+        username: username!,
+        password: password!,
+      })
+    );
   }
 
-  loginWithSSO(){
-    this.keycloakService.login().then(() => {
-      const refereshtoken = this.keycloakService.getKeycloakInstance().refreshToken;
-      const accesstoken = this.keycloakService.getKeycloakInstance().token;
-      const accesstoken2 = this.keycloakService.getToken();
-
-      console.log('accesstoken', accesstoken);
-      console.log('accesstoken2', accesstoken2);
-      console.log('refereshtoken', refereshtoken);
-    });
+  loginWithSSO(): void {
+    this.keycloakService.login();
   }
 
-  loginWithOAuth() {
+  loginWithOAuth(): void {
     this.oauthService.initLoginFlow();
   }
 
-
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
 }

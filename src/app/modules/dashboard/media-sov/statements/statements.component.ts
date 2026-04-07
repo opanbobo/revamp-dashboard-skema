@@ -68,9 +68,10 @@ export class StatementsComponent {
   };
 
   ngOnInit() {
-    this.filter = this.filterService.subscribe((filter) => {
-      this.fetchData({ ...filter } as FilterRequestPayload);
-    });
+
+    // this.filter = this.filterService.subscribe((filter) => {
+    //   this.fetchData({ ...filter } as FilterRequestPayload);
+    // });
     // this.mediaSOVState
     //   .pipe(map(({ media, tone }) => ({ media, tone })))
     //   .subscribe(({ media, tone }) => {
@@ -97,6 +98,7 @@ export class StatementsComponent {
   }
 
   ngOnChanges(changes: any) {
+
     const { media, tone } = changes;
     if (media && !media.firstChange && !_.isEqual(media.currentValue, media.previousValue)) {
       this.selectedMedia = media;

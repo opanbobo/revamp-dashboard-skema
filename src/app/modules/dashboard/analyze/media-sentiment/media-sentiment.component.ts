@@ -27,10 +27,12 @@ import { initialState } from '../../../../core/store/filter/filter.reducer';
 })
 export class MediaSentimentComponent {
   analyzeState: Observable<AnalyzeState>;
+  filter: any;
   isLoading: boolean = false;
   chartData: any;
   tones: Tones | null = null;
   options: any;
+  isMonthlyView: boolean = false;
 
   constructor(
     private store: Store<AppState>,
@@ -51,6 +53,18 @@ export class MediaSentimentComponent {
     });
     this.filterService.subscribe((v) => {
       const filter = { ...v };
+      this.filter = filter;
+
+      const start = moment(filter.start_date);
+      const end = moment(filter.end_date);
+
+      const diffInDays = end.diff(start, 'days');
+      const isByMonth = diffInDays > 30;
+
+      console.log('Chart View:', isByMonth ? 'Monthly' : 'Daily');
+
+      this.isMonthlyView = isByMonth; 
+
       this.store.dispatch(getTones({ filter }));
     });
   }
@@ -151,13 +165,30 @@ export class MediaSentimentComponent {
   onDataSelect = (value: any) => {
     const currentData = this.chartData.datasets[value.element.datasetIndex];
     const date = this.chartData.dates[value.element.index];
+
+    let startDate: string;
+    let endDate:   string;
+
+    if (this.isMonthlyView) {
+      // clicked is a “YYYY-MM-DD” somewhere in that month
+      startDate = moment(date).startOf('month').format('YYYY-MM-DD');
+      endDate   = moment(date).endOf('month').format('YYYY-MM-DD');
+    } else {
+      // daily view: same start & end
+      startDate = date;
+      endDate   = date;
+    }
+
     this.store.dispatch(
       getArticlesByTone({
         filter: {
           ...initialState,
+          category_id: this.filter.category_id,
+          category_set: this.filter.category_set,
+          user_media_type_id: this.filter.user_media_type_id,
           tone: currentData.tone,
-          start_date: date,
-          end_date: date,
+          start_date: startDate,
+          end_date: endDate,
         } as FilterRequestPayload,
       })
     );

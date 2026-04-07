@@ -24,9 +24,36 @@ import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 
 const highlightKeywords = (content: string, keywords: string[]): string => {
-  const cleanedKeywords = keywords.map((keyword) => keyword.replace(/"/g, ''));
-  const regex = new RegExp(cleanedKeywords.join('|'), 'gi');
-  return content.replace(regex, (match) => `<mark>${match}</mark>`);
+  if (!content || !keywords || keywords.length === 0) return content;
+  
+  const cleanedKeywords = keywords
+    .map((keyword) => keyword.replace(/"/g, '').trim())
+    .filter(keyword => keyword.length > 0);
+  
+  if (cleanedKeywords.length === 0) return content;
+  
+  let result = content;
+  
+  // For each keyword, replace it but only outside of HTML tags
+  cleanedKeywords.forEach(keyword => {
+    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    
+    // Create a simple replacement function that avoids HTML tags
+    // Split by HTML tags to only replace text between tags
+    const parts = result.split(/(<[^>]*>)/);
+    
+    result = parts.map(part => {
+      // If this part is an HTML tag, return it as-is
+      if (part.startsWith('<') && part.endsWith('>')) {
+        return part;
+      }
+      // Otherwise, replace keywords in the text part
+      const regex = new RegExp(`(${escapedKeyword})`, 'gi');
+      return part.replace(regex, '<mark>$1</mark>');
+    }).join('');
+  });
+  
+  return result;
 };
 
 @Component({
@@ -169,9 +196,26 @@ export class ArticleDetailComponent {
         this.isLoading = false;
         const articleData = articleResp.data;
         this.filter = this.filterService.subscribe((filter) => {
-          const hightligtedWords = highlightKeywords(articleData.content, articleData?.keywords ?? []);
-          this.sanitizedContent = this.sanitizer.bypassSecurityTrustHtml(hightligtedWords);
+          // Check if content contains HTML tags
+          const content = articleData.content;
+          
+          // If content already contains HTML tags (like <p>, <img>, etc.)
+          // We should use it as-is for highlighting
+          if (content.includes('<') && content.includes('>')) {
+            // Content already has HTML, apply keyword highlighting
+            let highlightedContent = highlightKeywords(content, articleData?.keywords ?? []);
+            
+            // Sanitize the HTML content
+            this.sanitizedContent = this.sanitizer.bypassSecurityTrustHtml(highlightedContent);
+          } else {
+            // Content is plain text, wrap it in HTML for proper display
+            const highlightedContent = highlightKeywords(content, articleData?.keywords ?? []);
+            // Wrap in paragraph tags for basic formatting
+            const htmlContent = `<p>${highlightedContent.replace(/\n/g, '<br>')}</p>`;
+            this.sanitizedContent = this.sanitizer.bypassSecurityTrustHtml(htmlContent);
+          }
         });
+        
         let file = articleData?.file_pdf;
         if (articleData?.media_type === 'media cetak') {
           const parsed = this.extractDateFromUrl(file)?.split('-');
@@ -192,6 +236,7 @@ export class ArticleDetailComponent {
             file = `https://api.skema.co.id/media/media_radio/${parsed[0]}/${parsed[1]}/${parsed[2]}/${fileName}`;
           }
         }
+        
         this.article = {
           ...articleData,
           file_pdf: file,

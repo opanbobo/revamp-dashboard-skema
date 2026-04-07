@@ -149,14 +149,19 @@ export class MediaListComponent {
     if (this.isLoading) return;
 
     this.isLoading = true;
-    const selectedIds = this.listSelected.map((v) => (!v.children?.length ? v.data : null)).filter((v) => !!v);
+
+    // Extract selected media IDs from listSelected array
+    const selectedIds = this.listSelected
+      .filter(node => !node.children) // Only leaf nodes
+      .map(node => node.data as string);
+
     const media_list = [];
     for (const v of this.listMediaGroup[0].children!) {
       if (v.children) {
         for (const media of v.children) {
           media_list.push({
             media_id: media.data as string,
-            chosen: selectedIds.includes(media.data),
+            chosen: selectedIds.includes(media.data as string),
           });
         }
       }
@@ -193,74 +198,85 @@ export class MediaListComponent {
     return TONE_MAP[tone] ?? '';
   }
 
-  preSelectNode(node: TreeNode) {
-    const { isAllChildSelected, isSomeChildSelected } = this.getNodeState(node);
-    if (isAllChildSelected) {
-      this.listSelected.push(node);
-    } else if (isSomeChildSelected) {
-      node.partialSelected = true;
-    }
-    node.expanded = node.data === 'all';
-  }
-
-  getNodeState(node: TreeNode) {
-    let isAllChildSelected = false;
-    let isSomeChildSelected = false;
-
-    if (node.children && node.children.length) {
-      isAllChildSelected = node.children.every((child) => this.listSelected.includes(child));
-      isSomeChildSelected = node.children.some((child) => this.listSelected.includes(child));
-    }
-
-    return {
-      isAllChildSelected,
-      isSomeChildSelected,
-    };
-  }
-
   openEditModal(media: Media, type: string) {
+    this.isLoading = true;
     this.type = type;
-    this.listSelected = [];
     this.selectedMedia = media;
 
     this.resetForm();
     this.form.patchValue(media);
 
-    this.preferenceService.getMediaGroups(media.user_media_type_id).subscribe((res) => {
-      const node: TreeNode = {
-        label: 'Select All',
-        data: 'all',
-        children: res.data.map((v) => {
-          const node: TreeNode = {
+    this.preferenceService.getMediaGroups(media.user_media_type_id).subscribe({
+      next: (res) => {
+        if (!res.data || res.data.length === 0) {
+          this.showUpdateModal = true;
+          this.isLoading = false;
+          return;
+        }
+
+        const nodeMap = new Map<number | string, TreeNode>();
+        const preSelectedIds: (number | string)[] = [];
+
+        const childNodes = res.data.map((v) => {
+          const label = v.media_type;
+
+          const mediaNodes = v.media_list.map((mediaItem) => {
+            const child: TreeNode = {
+              label: mediaItem.media_name,
+              data: mediaItem.media_id,
+              key: `media-${mediaItem.media_id}`,
+            };
+
+            nodeMap.set(mediaItem.media_id, child);
+
+            const shouldSelect =
+              (type === 'prioritas' && mediaItem.tier === 1) ||
+              (type === 'detail' && mediaItem.chosen) ||
+              (type === 'pers' && mediaItem.is_dewan_pers) ||
+              (type === 'international' && mediaItem.is_international) ||
+              (type === 'national' && mediaItem.is_national) ||
+              (type === 'language' && mediaItem.language === 'IND') ||
+              (type === 'online-ind' && mediaItem.language === 'IND' && label === 'Berita Online');
+
+            if (shouldSelect) {
+              preSelectedIds.push(mediaItem.media_id);
+            }
+
+            return child;
+          });
+
+          return {
+            key: `type-${v.media_type}`,
             label: v.media_type,
             data: v.media_type,
-            children: v.media_list.map((v) => {
-              const child = {
-                label: v.media_name,
-                data: v.media_id,
-              };
-              if (
-                (type == 'prioritas' && v.tier === 1) || 
-                (type == 'detail' && v.chosen) || 
-                (type == 'pers' && v.is_dewan_pers) || 
-                (type == 'international' && v.is_international) || 
-                (type == 'national' && v.is_national) ||
-                (type == 'language' && v.language === 'IND')
-              ) {
-                this.listSelected.push(child);
-              }
-              return child;
-            }),
+            children: mediaNodes,
           };
+        });
 
-          setTimeout(() => this.preSelectNode(node));
-          return node;
-        }),
-      };
+        this.listMediaGroup = [{
+          key: 'root-all',
+          label: 'Select All',
+          data: 'all',
+          children: childNodes,
+        }];
 
-      this.listMediaGroup = [node];
-      this.showUpdateModal = true;
-      setTimeout(() => this.preSelectNode(node));
+        // Efficient selection building using map lookup
+        this.listSelected = preSelectedIds
+          .map(id => nodeMap.get(id))
+          .filter((node): node is TreeNode => node !== undefined);
+
+        this.showUpdateModal = true;
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('API Error:', error);
+        this.isLoading = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to load media groups.',
+        });
+      }
     });
   }
 
@@ -269,14 +285,5 @@ export class MediaListComponent {
       user_media_type_id: '',
       user_media_type_name_def: ['', Validators.required],
     });
-  }
-
-  onNodeSelect(event: any) {
-    console.log('Node selected:', event.node);
-    this.listSelected.push(event.node);
-  }
-  
-  onNodeUnselect(event: any) {
-    console.log('Node unselected:', event.node);
   }
 }

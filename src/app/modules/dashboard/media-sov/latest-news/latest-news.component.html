@@ -1,11 +1,20 @@
 <div>
-  <div class="flex align-items-center gap-2 mb-4">
-    <icon-newspaper fill="var(--primary-color)"></icon-newspaper>
-    <div class="text-sm font-semibold">Latest News</div>
-    <icon-info></icon-info>
+  <div class="flex align-items-center justify-content-between">
+    <div class="flex align-items-center gap-2 mb-4">
+      <icon-newspaper fill="var(--primary-color)"></icon-newspaper>
+      <div class="text-sm font-semibold">Latest News</div>
+      <icon-info></icon-info>
+    </div>
+    <div class="flex align-items-center gap-2 mb-4 cursor-pointer text-primary hover:underline"
+      (click)="fetchMoreArticles()">
+      <span class="text-sm font-medium">More Articles</span>
+      <i class="pi pi-chevron-right text-sm"></i>
+    </div>
   </div>
+
   <spinner [spinning]="isLoading">
-    <div *ngIf="articles.length === 0" class="w-full h-10rem flex align-items-center justify-content-center bg-gray-100">
+    <div *ngIf="articles.length === 0"
+      class="w-full h-10rem flex align-items-center justify-content-center bg-gray-100">
       <span>No News Available.</span>
     </div>
     <div class="flex column-gap-5 row-gap-4 flex-wrap" *ngIf="articles.length > 0">
@@ -13,16 +22,13 @@
         <div class="cursor-pointer" [routerLink]="'/dashboard/articles/' + article.article_id">
           <div class="flex flex-column xl:flex-row xl:align-items-start py-1 gap-3">
             <div class="w-5rem">
-              <img
-                [src]="article.image_url"
-                [alt]="article.title"
-                class="h-5rem w-full border-round"
-                style="object-fit: cover"
-                imgFallback="https://placehold.co/600x400?text=No+Image+Available" />
+              <img [src]="article.image_url" [alt]="article.title" class="h-5rem w-full border-round"
+                style="object-fit: cover" imgFallback="https://placehold.co/600x400?text=No+Image+Available" />
             </div>
             <div class="flex justify-content-between align-items-center pt-1">
               <div class="flex flex-column gap-2">
-                <div class="text-xs font-semibold white-space-nowrap text-overflow-ellipsis overflow-hidden" style="width: 150px">
+                <div class="text-xs font-semibold white-space-nowrap text-overflow-ellipsis overflow-hidden"
+                  style="width: 150px">
                   {{ article.title }}
                 </div>
                 <p class="white-space-nowrap overflow-hidden text-overflow-ellipsis p-0 mt-0 mb-0" style="width: 150px">
@@ -31,11 +37,8 @@
                 <div class="flex gap-3 align-items-center">
                   <div class="flex align-items-center gap-2">
                     <i class="pi pi-globe text-500 text-xs"></i>
-                    <span
-                      class="text-500 p-0 mt-0 white-space-nowrap overflow-hidden text-overflow-ellipsis"
-                      style="width: 40px; font-size: 10px"
-                      >{{ article.media_name }}</span
-                    >
+                    <span class="text-500 p-0 mt-0 white-space-nowrap overflow-hidden text-overflow-ellipsis"
+                      style="width: 40px; font-size: 10px">{{ article.media_name }}</span>
                   </div>
                   <div class="flex align-items-center gap-2">
                     <i class="pi pi-clock text-500 text-xs"></i>
@@ -50,3 +53,54 @@
     </div>
   </spinner>
 </div>
+
+<p-dialog header="Header" [(visible)]="showMoreModal" [modal]="true" [style]="{ width: '60rem' }"
+  [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }">
+  <ng-template pTemplate="header">
+    <div class="inline-flex align-items-center justify-content-center gap-2">
+      <span class="font-bold text-md">Articles</span>
+    </div>
+  </ng-template>
+  <div style="height: 400px; overflow-y: auto;" (scroll)="onLazyLoad($event)">
+    <spinner [spinning]="isLoading">
+        <div class="flex justify-content-start flex-wrap row-gap-4 px-3" style="column-gap: 2rem;">
+          <ng-container *ngFor="let article of moreArticles">
+            <div class="cursor-pointer" [routerLink]="'/dashboard/articles/' + article.article_id">
+              <div class="flex flex-column xl:flex-row xl:align-items-start py-1 gap-3">
+                <div class="w-5rem">
+                  <img [src]="article.image_url" [alt]="article.title" class="h-5rem w-full border-round"
+                    style="object-fit: cover" imgFallback="https://placehold.co/600x400?text=No+Image+Available" />
+                </div>
+                <div class="flex justify-content-between align-items-center pt-1">
+                  <div class="flex flex-column gap-2">
+                    <div class="text-xs font-semibold white-space-nowrap text-overflow-ellipsis overflow-hidden"
+                      style="width: 150px">
+                      {{ article.title }}
+                    </div>
+                    <p class="white-space-nowrap overflow-hidden text-overflow-ellipsis p-0 mt-0 mb-0"
+                      style="width: 150px">
+                      {{ article.content }}
+                    </p>
+                    <div class="flex gap-3 align-items-center">
+                      <div class="flex align-items-center gap-2">
+                        <i class="pi pi-globe text-500 text-xs"></i>
+                        <span class="text-500 p-0 mt-0 white-space-nowrap overflow-hidden text-overflow-ellipsis"
+                          style="width: 40px; font-size: 10px">{{ article.media_name }}</span>
+                      </div>
+                      <div class="flex align-items-center gap-2">
+                        <i class="pi pi-clock text-500 text-xs"></i>
+                        <span class="text-500 p-0 mt-0" style="font-size: 10px">{{ article.datee.split(' ')[0] }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+    </spinner>
+  </div>
+  <ng-template pTemplate="footer">
+    <p-button (click)="showMoreModal = false" label="Cancel" [outlined]="true"></p-button>
+  </ng-template>
+</p-dialog>

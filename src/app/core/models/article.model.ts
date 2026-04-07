@@ -1,3 +1,5 @@
+import { SafeHtml } from "@angular/platform-browser";
+
 export interface Article {
   date_time: any;
   toneLabel?: string;
@@ -23,6 +25,7 @@ export interface Article {
   image_url?: string;
   preview_link?: string;
   media_type?: string;
+  media_tier?: string;
   location?: string;
   advalue_bw?: number;
   advalue_fc?: number;
@@ -31,6 +34,7 @@ export interface Article {
   summary?: string;
   issue?: string;
   keywords?: string[];
+  sanitizedContent?: SafeHtml;
 }
 
 export interface ArticleResponse {

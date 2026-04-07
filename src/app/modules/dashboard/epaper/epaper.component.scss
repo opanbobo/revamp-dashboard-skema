@@ -1,0 +1,170 @@
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* =========================================================
+   EPAPER COMPONENT STYLES
+   Fully compatible with global light / dark mode variables
+   ========================================================= */
+
+/* Grid layout for cards */
+.epaper-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  width: 100%;
+}
+
+/* Wrapper for each card (optional hook) */
+.epaper-card {
+  height: 100%;
+}
+
+/* =========================================================
+   CARD
+   ========================================================= */
+.book-card {
+  background-color: var(--card-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  min-height: 340px;
+
+  display: flex;
+  flex-direction: column;
+
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.book-card:hover {
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+  transform: translateY(-2px);
+}
+
+/* =========================================================
+   BOOK COVER
+   ========================================================= */
+.book-cover-container {
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+.book-cover-wrapper {
+  position: relative;
+  width: 100%;
+  height: 260px;
+  background-color: var(--card-secondary-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Book cover image */
+.book-cover-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Optional spine effect */
+.book-spine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.25),
+    rgba(0, 0, 0, 0)
+  );
+  pointer-events: none;
+}
+
+/* =========================================================
+   BOOK INFO
+   ========================================================= */
+.book-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Title */
+.book-title {
+  color: var(--text-color);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* Meta section */
+.book-meta {
+  font-size: 0.75rem;
+  color: var(--text-color-secondary, var(--text-color));
+  opacity: 0.9;
+}
+
+.book-author {
+  font-weight: 500;
+}
+
+.book-date {
+  opacity: 0.8;
+}
+
+/* =========================================================
+   STATUS BADGE
+   ========================================================= */
+.book-status {
+  margin-top: 0.5rem;
+}
+
+/* The colors themselves still come from ngClass */
+.book-status span {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+/* =========================================================
+   PRIME NG ADJUSTMENTS (LOCAL)
+   ========================================================= */
+
+/* Ensure paginator text follows theme */
+:host ::ng-deep .p-paginator {
+  background-color: var(--bg-color);
+}
+
+:host ::ng-deep .p-paginator-page {
+  color: var(--text-color) !important;
+}
+
+:host ::ng-deep .p-paginator-page.p-highlight {
+  color: var(--primary-color) !important;
+}
+
+:host ::ng-deep body.dark .status-badge {
+  color: inherit !important;
+}
+
+/* =========================================================
+   SAFETY FALLBACKS
+   ========================================================= */
+
+/* If text-color-secondary is missing in a theme */
+:root {
+  --text-color-secondary: var(--text-color);
+}

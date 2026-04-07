@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import moment from 'moment';
 import { ChartModule } from 'primeng/chart';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { ActionButtonProps, ChartCardComponent } from '../../../../../core/components/chart-card/chart-card.component';
 import { SpinnerComponent } from '../../../../../core/components/spinner/spinner.component';
 import { MediaVisibility } from '../../../../../core/models/media-visibility.model';
@@ -14,15 +14,26 @@ import { AppState } from '../../../../../core/store';
 import { AnalyzeState } from '../../../../../core/store/analyze/analyze.reducer';
 import { selectAnalyzeState } from '../../../../../core/store/analyze/analyze.selectors';
 import { barOpacityPlugin, htmlLegendPlugin } from '../../../../../shared/utils/ChartUtils';
+import { TabViewModule } from 'primeng/tabview';
+import { TabMenuModule } from 'primeng/tabmenu';
 
 @Component({
   selector: 'app-media-visibility',
   standalone: true,
-  imports: [ChartCardComponent, ChartModule, SpinnerComponent, CommonModule],
+  imports: [
+    ChartCardComponent,
+    ChartModule,
+    SpinnerComponent,
+    CommonModule,
+    TabViewModule,
+    TabMenuModule,
+  ],
   templateUrl: './media-visibility.component.html',
   styleUrl: './media-visibility.component.scss',
 })
-export class MediaVisibilityComponent {
+export class MediaVisibilityComponent implements OnInit, OnDestroy {
+  private subscriptions = new Subscription();
+
   filter: any;
 
   visibilityChartLineData: any;
@@ -39,9 +50,32 @@ export class MediaVisibilityComponent {
   visibilityPieOpts: any;
   visibilityPiePlugins = [htmlLegendPlugin];
 
+  visibilityBarComparisonData: any;
+  visibilityBarComparisonOpts: any;
+  visibilityBarComparisonPlugins = [htmlLegendPlugin];
+
+  sentimentBarData: any;
+  sentimentBarOpts: any;
+
   analyzeState: Observable<AnalyzeState>;
-  isLoading: boolean = false;
-  isDrilldownVisibilityChart: boolean = false;
+  isLoading = false;
+  isDrilldownVisibilityChart = false;
+
+  maxLineValue = 0;
+  maxBarValue = 0;
+
+  tabItems = [
+    { label: 'Pie Chart', key: 'pie' },
+    { label: 'Bar Comparison', key: 'bar' },
+    { label: 'Sentiment Analysis', key: 'sentiment' },
+  ];
+
+  activeTab = this.tabItems[0];
+  visibilityBarChartHeight = '300px';
+
+  onActiveItemChange(event: any) {
+    this.activeTab = event;
+  }
 
   constructor(
     private store: Store<AppState>,
@@ -72,40 +106,91 @@ export class MediaVisibilityComponent {
     };
   }
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.initChartOpts();
-    this.filterService.subscribe((v) => {
-      this.filter = v;
-      this.getData();
-    });
+
+    this.subscriptions.add(
+      this.filterService.subscribe((v) => {
+        this.filter = v;
+        this.getData();
+      })
+    );
   }
 
-  getData() {
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
+
+  getData(): void {
     this.isLoading = true;
     this.isDrilldownVisibilityChart = false;
-    this.analyzeService.getMediaVisibility(this.filter).subscribe((res) => {
-      this.isLoading = false;
-      this.initChartData(res.data);
-    });
+
+    const sub = this.analyzeService
+      .getMediaVisibility(this.filter)
+      .subscribe((res) => {
+        this.isLoading = false;
+        this.initChartData(res.data);
+        this.calculateBarChartHeight();
+      });
+
+    this.subscriptions.add(sub);
   }
 
-  initChartData = (mediaVisibility: MediaVisibility[]) => {
-    if (mediaVisibility.length) {
-      const { lineDatasets, lineLabels, pieLabels, pieDatasets, visibilityBarDatasets, barLabels } = this.getChartData(mediaVisibility);
+  private calculateBarChartHeight(): void {
+    const barCount =
+      this.visibilityBarComparisonData?.labels?.length ?? 0;
 
-      this.visibilityPieData = { labels: pieLabels, datasets: pieDatasets };
-      this.visibilityChartLineData = {
-        labels: lineLabels,
-        datasets: lineDatasets,
-      };
-      this.visibilityChartBarData = {
-        labels: barLabels,
-        datasets: visibilityBarDatasets,
-      };
-    }
-  };
+    const perBarPx = 30;
+    const minHeight = 200;
+    const maxHeight = 1600;
 
-  onVisibilityPieSelect = (value: any, type: string) => {
+    const calculatedHeight = barCount * perBarPx;
+
+    this.visibilityBarChartHeight =
+      `${Math.min(maxHeight, Math.max(minHeight, calculatedHeight))}px`;
+
+    console.log('Bar count:', barCount);
+    console.log('Bar chart height:', this.visibilityBarChartHeight);
+  }
+
+
+
+  initChartData(mediaVisibility: MediaVisibility[]): void {
+    if (!mediaVisibility.length) return;
+
+    const {
+      lineDatasets,
+      lineLabels,
+      pieLabels,
+      pieDatasets,
+      visibilityBarDatasets,
+      visibilityBarComparisonData,
+      sentimentBarData
+    } = this.getChartData(mediaVisibility);
+
+    this.visibilityPieData = { labels: pieLabels, datasets: pieDatasets };
+
+    this.visibilityChartLineData = {
+      labels: lineLabels,
+      datasets: lineDatasets,
+    };
+
+    this.visibilityChartBarData = {
+      labels: lineLabels,
+      datasets: visibilityBarDatasets,
+    };
+
+    this.maxLineValue = this.getMaxValue(lineDatasets);
+    this.maxBarValue = this.getMaxValue(visibilityBarDatasets);
+
+    console.log('Max line value:', this.maxLineValue);
+    console.log('Max bar value:', this.maxBarValue);
+
+    this.visibilityBarComparisonData = visibilityBarComparisonData;
+    this.sentimentBarData = sentimentBarData;
+  }
+
+  onVisibilityPieSelect(value: any, type: string): void {
     let mediaName;
     let date;
 
@@ -116,6 +201,7 @@ export class MediaVisibilityComponent {
 
       const startDate = new Date(this.filter.start_date).getDate();
       const endDate = new Date(this.filter.end_date).getDate();
+
       if (startDate === endDate) {
         this.router.navigate(['/dashboard/articles-by-media'], {
           queryParams: { mediaName, date },
@@ -124,23 +210,24 @@ export class MediaVisibilityComponent {
       }
 
       this.onVisibilityChartDayClick(date, mediaName);
-    } else {
-      if (type === 'bar') {
-        const data = this.visibilityChartBarData.datasets[value.element.datasetIndex];
-        mediaName = data.label;
-        date = data.date[value.element.index];
-      } else if (type === 'pie') {
-        const data = this.visibilityPieData.datasets[value.element.datasetIndex];
-        mediaName = data.mediaIds[value.element.index];
-      }
-
-      this.router.navigate(['/dashboard/articles-by-media'], {
-        queryParams: { mediaName, date },
-      });
+      return;
     }
-  };
 
-  onVisibilityChartDayClick = (date: string, mediaName: string) => {
+    if (type === 'bar') {
+      const data = this.visibilityChartBarData.datasets[value.element.datasetIndex];
+      mediaName = data.label;
+      date = data.date[value.element.index];
+    } else if (type === 'pie') {
+      const data = this.visibilityPieData.datasets[value.element.datasetIndex];
+      mediaName = data.mediaIds[value.element.index];
+    }
+
+    this.router.navigate(['/dashboard/articles-by-media'], {
+      queryParams: { mediaName, date },
+    });
+  }
+
+  onVisibilityChartDayClick(date: string, mediaName: string): void {
     if (this.isDrilldownVisibilityChart) {
       this.router.navigate(['/dashboard/articles-by-media'], {
         queryParams: { mediaName, date },
@@ -149,7 +236,8 @@ export class MediaVisibilityComponent {
     }
 
     this.isLoading = true;
-    this.analyzeService
+
+    const sub = this.analyzeService
       .getMediaVisibility({
         ...this.filterService.filter,
         start_date: moment(date).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
@@ -158,47 +246,43 @@ export class MediaVisibilityComponent {
       .subscribe((res) => {
         this.isDrilldownVisibilityChart = true;
 
-        const { lineDatasets, lineLabels, visibilityBarDatasets } = this.getChartData(res.data);
+        const { lineDatasets, lineLabels, visibilityBarDatasets } =
+          this.getChartData(res.data);
+
         this.visibilityChartLineData = {
           labels: lineLabels,
           datasets: lineDatasets,
         };
+
         this.visibilityChartBarData = {
           labels: lineLabels,
           datasets: visibilityBarDatasets,
         };
+
         this.isLoading = false;
       });
-  };
 
-  initChartOpts = () => {
+    this.subscriptions.add(sub);
+  }
+
+  initChartOpts(): void {
     const documentStyle = getComputedStyle(document.documentElement);
-    const textColor = documentStyle.getPropertyValue('--text-color');
     const textColorSecondary = documentStyle.getPropertyValue('--text-color-secondary');
     const surfaceBorder = documentStyle.getPropertyValue('--surface-border');
-    const isDarkModeStorage = window.localStorage.getItem('useDarkMode');
-    const isDarkMode = isDarkModeStorage ? JSON.parse(isDarkModeStorage) : false;
+    const isDarkMode = JSON.parse(window.localStorage.getItem('useDarkMode') ?? 'false');
 
     this.visibilityPieOpts = {
       plugins: {
-        legend: {
-          display: false,
-        },
-        htmlLegend: {
-          containerID: 'legend-container',
-          flexDirection: 'row',
-        },
+        legend: { display: false },
+        htmlLegend: { containerID: 'legend-container', flexDirection: 'row' },
       },
     };
 
     this.visibilityChartBarOpts = {
       maintainAspectRatio: false,
-      aspectRatio: 0.8,
       plugins: {
         tooltip: { mode: 'index', intersect: false },
-        barOpacityPlugin: {
-          opacity: 1,
-        },
+        barOpacityPlugin: { opacity: 1 },
         legend: {
           position: 'bottom',
           align: 'start',
@@ -211,125 +295,252 @@ export class MediaVisibilityComponent {
         },
       },
       scales: {
-        x: {
-          stacked: true,
-          ticks: {
-            color: documentStyle.getPropertyValue('--text-color-secondary'),
-          },
-          grid: {
-            color: documentStyle.getPropertyValue('--surface-border'),
-            drawBorder: false,
-          },
-        },
-        y: {
-          stacked: true,
-          ticks: {
-            color: documentStyle.getPropertyValue('--text-color-secondary'),
-          },
-          grid: {
-            color: documentStyle.getPropertyValue('--surface-border'),
-            drawBorder: false,
-          },
-        },
+        x: { stacked: true, ticks: { color: textColorSecondary }, grid: { color: surfaceBorder } },
+        y: { stacked: true, ticks: { color: textColorSecondary }, grid: { color: surfaceBorder } },
       },
     };
 
     this.visibilityChartLineOpts = {
       maintainAspectRatio: false,
-      aspectRatio: 0.93,
       plugins: {
         legend: {
           position: 'bottom',
-          align: 'center',
           labels: {
-            font: { size: 10 },
             color: isDarkMode ? 'white' : documentStyle.getPropertyValue('--text-color'),
-            boxWidth: 10,
-            boxHeight: 5,
-            filter: function (legendItem: any, chartData: any) {
-              const datasetIndex = legendItem.datasetIndex;
-              const dataset = chartData.datasets[datasetIndex];
-              const color = dataset.borderColor; // Get the border color of the dataset
-              legendItem.fillStyle = color; // Set legend item background color
-              return true;
-            },
           },
         },
       },
-      elements: {
-        point: { radius: 0, hitRadius: 20 },
+      elements: { point: { radius: 0, hitRadius: 20 } },
+      scales: {
+        x: { ticks: { color: textColorSecondary }, grid: { color: surfaceBorder } },
+        y: { ticks: { color: textColorSecondary }, grid: { color: surfaceBorder } },
+      },
+    };
+
+    this.visibilityBarComparisonOpts = {
+      indexAxis: 'y',
+      maintainAspectRatio: false,
+      responsive: false,
+      layout: {
+        padding: {
+          left: 20,
+          right: 30,
+          top: 20,
+          bottom: 20
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            color: isDarkMode ? 'white' : documentStyle.getPropertyValue('--text-color'),
+          },
+        },
       },
       scales: {
         x: {
-          ticks: { color: textColorSecondary },
-          grid: { color: surfaceBorder, drawBorder: false },
+          beginAtZero: true,
+          ticks: {
+            color: textColorSecondary,
+          },
+          grid: {
+            color: surfaceBorder
+          }
         },
         y: {
-          ticks: { color: textColorSecondary },
-          grid: { color: surfaceBorder, drawBorder: false },
-        },
+          ticks: {
+            color: textColorSecondary,
+            autoSkip: false,
+            maxRotation: 0,
+            minRotation: 0,
+            font: {
+              size: 12
+            },
+            padding: 10
+          },
+          grid: {
+            display: false
+          },
+          afterFit: (scale: any) => {
+            scale.width = 280;
+          }
+        }
       },
+      elements: {
+        bar: {
+          borderWidth: 0,
+        }
+      }
     };
-  };
 
-  getChartData = (mediaVisibility: MediaVisibility[]) => {
+    this.sentimentBarOpts = {
+      indexAxis: 'y',
+      responsive: true,
+
+      plugins: {
+        legend: {
+          position: 'top'
+        }
+      },
+
+      scales: {
+        x: {
+          stacked: true,
+          max: 100,
+          grid: {
+            display: false
+          },
+          ticks: {
+            callback: function (value: any) {
+              return value + '%';
+            }
+          }
+        },
+
+        y: {
+          stacked: true,
+          grid: {
+            display: false
+          },
+          ticks: {
+            font: {
+              size: 12
+            }
+          },
+
+          afterFit: (scale: any) => {
+            scale.width = 280;
+          }
+        }
+      },
+
+      elements: {
+        bar: {
+          borderRadius: 0
+        }
+      }
+    };
+  }
+
+  getChartData(mediaVisibility: MediaVisibility[]) {
     const lineDatasets: any[] = [];
     const pieDatasets: any = [{ data: [], percentages: [], mediaIds: [] }];
     const pieLabels: string[] = [];
-    const totalTones = mediaVisibility.reduce((prev, chart) => {
-      return prev + chart.doc_count;
-    }, 0);
+
+    const totalTones = mediaVisibility.reduce((sum, v) => sum + v.doc_count, 0);
 
     mediaVisibility.forEach((media) => {
       pieLabels.push(media.key);
-      const tmpData: {
-        label: string;
-        data: number[];
-        tension: number;
-        date: string[];
-      } = {
+
+      const tmp = {
         label: media.key,
-        data: [],
-        date: [],
+        data: media.category_id_per_day.buckets.map(b => b.doc_count),
+        date: media.category_id_per_day.buckets.map(b => b.key_as_string),
         tension: 0.4,
       };
-      media.category_id_per_day.buckets.forEach((bucket) => {
-        tmpData.data.push(bucket.doc_count);
-      });
-      media.category_id_per_day.buckets.forEach((bucket) => {
-        tmpData.date.push(bucket.key_as_string);
-      });
-      pieDatasets[0].percentages.push(((media.doc_count / totalTones) * 100).toFixed(0));
+
       pieDatasets[0].data.push(media.doc_count);
       pieDatasets[0].mediaIds.push(media.key);
+      pieDatasets[0].percentages.push(((media.doc_count / totalTones) * 100).toFixed(0));
 
-      lineDatasets.push(tmpData);
+      lineDatasets.push(tmp);
     });
 
-    const visibilityBarDatasets = mediaVisibility.map((visibility) => {
-      const data = visibility.category_id_per_day.buckets.map((val) => val.doc_count);
-      const date = visibility.category_id_per_day.buckets.map((val) => val.key_as_string);
-      return {
-        type: 'bar',
-        data,
-        date,
-        label: visibility.key,
-      };
+    const labels = mediaVisibility[0].category_id_per_day.buckets.map(b =>
+      b.key_as_string.includes('T')
+        ? moment(b.key_as_string).utc().format('HH:mm')
+        : moment(b.key_as_string).format('DD MMM')
+    );
+
+    const visibilityBarDatasets = mediaVisibility.map(v => ({
+      type: 'bar',
+      label: v.key,
+      data: v.category_id_per_day.buckets.map(b => b.doc_count),
+      date: v.category_id_per_day.buckets.map(b => b.key_as_string),
+    }));
+
+    const documentStyle = getComputedStyle(document.documentElement);
+
+    const positiveColor = documentStyle.getPropertyValue('--positive-color');
+    const negativeColor = documentStyle.getPropertyValue('--negative-color');
+    const neutralColor = '#9CA3AF';
+
+    const positiveData: number[] = [];
+    const neutralData: number[] = [];
+    const negativeData: number[] = [];
+
+    mediaVisibility.forEach(media => {
+
+      const positive = media.sentiments.find(s => s.tone === 1)?.value ?? 0;
+      const neutral = media.sentiments.find(s => s.tone === 0)?.value ?? 0;
+      const negative = media.sentiments.find(s => s.tone === -1)?.value ?? 0;
+
+      const total = positive + neutral + negative;
+
+      positiveData.push((positive / total) * 100);
+      neutralData.push((neutral / total) * 100);
+      negativeData.push((negative / total) * 100);
     });
 
-    const lineLabels = mediaVisibility[0].category_id_per_day.buckets.map((bucket) => {
-      return bucket.key_as_string.includes('T')
-        ? moment(bucket.key_as_string).utc().format('HH:mm')
-        : moment(bucket.key_as_string).format('DD MMM');
-    });
+    const sentimentBarData = {
+      labels: mediaVisibility.map(v => v.key),
+      datasets: [
+        {
+          label: 'Positive',
+          backgroundColor: positiveColor,
+          data: positiveData,
+          stack: 'sentiment'
+        },
+        {
+          label: 'Neutral',
+          backgroundColor: neutralColor,
+          data: neutralData,
+          stack: 'sentiment'
+        },
+        {
+          label: 'Negative',
+          backgroundColor: negativeColor,
+          data: negativeData,
+          stack: 'sentiment'
+        }
+      ]
+    };
 
     return {
-      lineLabels,
+      lineLabels: labels,
       lineDatasets,
       pieLabels,
       pieDatasets,
-      barLabels: lineLabels,
+      barLabels: labels,
       visibilityBarDatasets,
+      visibilityBarComparisonData: {
+        labels: mediaVisibility.map(v => v.key),
+        datasets: [{
+          label: 'Total Document Count',
+          backgroundColor: '#42A5F5',
+          data: mediaVisibility.map(v => v.doc_count),
+        }],
+      },
+      sentimentBarData
     };
-  };
+  }
+
+  private getMaxValue(datasets: any[]): number {
+    return Math.max(
+      ...datasets.flatMap(ds => ds.data)
+    );
+  }
+
+  get lineChartHeight(): string {
+    const baseHeight = 300;
+    const ratio = 0.5;      // 1400 → 700
+    const maxHeight = 1000;
+
+    const computed = Math.min(
+      Math.max(this.maxLineValue * ratio, baseHeight),
+      maxHeight
+    );
+
+    return `${computed}px`;
+  }
 }

@@ -17,7 +17,7 @@ import { DividerModule } from 'primeng/divider';
 
 interface Option {
   name: string;
-  value: string | number;
+  value?: string | number | null;
 }
 
 const DEFAULT_CATEGORY: Option = {
@@ -31,6 +31,11 @@ const DEFAULT_SUB_CATEGORY: Option = {
 const DEFAULT_MEDIA: Option = {
   name: 'All Media',
   value: initialState.user_media_type_id,
+};
+
+const DEFAULT_TIER: Option = {
+  name: 'All Tiers',
+  value: initialState.media_tier,
 };
 
 @Component({
@@ -51,9 +56,10 @@ export class FilterComponent {
   selectedSubCategory: string = initialState.category_id;
   selectedMedia: number = initialState.user_media_type_id;
   startDate: Date = moment(initialState.start_date).toDate();
-  startTime: Date = moment(initialState.start_date).toDate();
+  startTime: Date = moment(`${initialState.start_date} ${initialState.start_time}`).toDate();
   endDate: Date = moment(initialState.end_date).toDate();
-  endTime: Date = moment(initialState.end_date).toDate();
+  endTime: Date = moment(`${initialState.end_date} ${initialState.end_time}`).toDate();
+  selectedTier?: number | null | string = initialState.media_tier;
 
   periodicOptions: Option[] = [
     { name: 'Yesterday', value: 'yesterday' },
@@ -62,9 +68,18 @@ export class FilterComponent {
     { name: 'Last Month', value: 'month' },
     { name: 'Last Year', value: 'year' },
   ];
+
+  tierOptions: Option[] = [
+    { name: 'All Tiers', value: 'all' },
+    { name: 'Tier 1', value: 1 },
+    { name: 'Tier 2', value: 2 },
+    { name: 'Tier 3', value: 3 },
+  ];
+
   categoryOptions: Option[] = [DEFAULT_CATEGORY];
   subCategoryOptions: Option[] = [DEFAULT_SUB_CATEGORY];
   mediaOptions: Option[] = [DEFAULT_MEDIA];
+  mediaTierOptions: Option[] = [DEFAULT_TIER];
 
   isLoadingCategoryOptions: boolean = true;
   isLoadingSubCategoryOptions: boolean = true;
@@ -150,12 +165,12 @@ export class FilterComponent {
     const defaultStartDate = dateRange[this.selectedPeriodic][0];
     const defaultEndDate = dateRange[this.selectedPeriodic][1];
 
-    const startDate = this.isCustom 
-      ? moment(this.startDate).startOf('day').format('YYYY-MM-DD') 
+    const startDate = this.isCustom
+      ? moment(this.startDate).startOf('day').format('YYYY-MM-DD')
       : moment(defaultStartDate).startOf('day').format('YYYY-MM-DD');
 
-    const endDate = this.isCustom 
-      ? moment(this.endDate).endOf('day').format('YYYY-MM-DD') 
+    const endDate = this.isCustom
+      ? moment(this.endDate).endOf('day').format('YYYY-MM-DD')
       : moment(defaultEndDate).endOf('day').format('YYYY-MM-DD');
 
     const filter: FilterState = {
@@ -166,7 +181,8 @@ export class FilterComponent {
       start_date: startDate,
       end_date: endDate,
       start_time: this.isCustom ? moment(this.startTime).format("HH:mm:ss") : '00:00:00',
-      end_time: this.isCustom ? moment(this.endTime).format("HH:mm:ss") : '23:59:59'
+      end_time: this.isCustom ? moment(this.endTime).format("HH:mm:ss") : '23:59:59',
+      media_tier: this.selectedTier,
     };
     this.store.dispatch(setFilter({ filter }));
   }

@@ -24,7 +24,8 @@ export class InfluencerService {
       category_set: filter.category_set ?? '',
       user_media_type_id: filter.user_media_type_id ?? '',
       category_id: filter.category_id ?? 'all',
-      search: filter.term ?? ''
+      search: filter.term ?? '',
+      media_tier: filter.media_tier ?? '',
     };
 
     return this.http.get<InfluencerCountResponse>(`${this.baseUrl}/v1/spokesperson/quotes/count`, {
@@ -45,6 +46,7 @@ export class InfluencerService {
       user_media_type_id: filter.user_media_type_id ?? '',
       category_id: filter.category_id ?? 'all',
       spokesperson_name: filter.spokeperson_name ?? '',
+      media_tier: filter.media_tier ?? '',
     };
 
     return this.http.get<{
@@ -70,6 +72,7 @@ export class InfluencerService {
       category_id: filter.category_id ?? 'all',
       media_id: filter.media_id ?? 0,
       spokesperson_name: filter.spokeperson_name ?? '',
+      media_tier: filter.media_tier ?? '',
     };
 
     return this.http.get<{ data: InfluencerQuotes[] }>(`${this.baseUrl}/v1/spokesperson/quotes`, {
@@ -92,6 +95,7 @@ export class InfluencerService {
       category_id: filter.category_id ?? 'all',
       media_id: filter.media_id ?? 0,
       spokesperson_name: filter.spokeperson_name ?? '',
+      media_tier: filter.media_tier ?? '',
     };
 
     return this.http.get<{ data: Article[] }>(`${this.baseUrl2}/v3/spokesperson/quotes/articles`, {

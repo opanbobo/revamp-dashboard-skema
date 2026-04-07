@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, NgZone } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnDestroy, OnInit, AfterViewInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { LeafletModule } from '@asymmetrik/ngx-leaflet';
 import { Store } from '@ngrx/store';
-import L, { DomUtil, MapOptions, control, geoJSON, latLng, tileLayer } from 'leaflet';
+import L, { DomUtil, MapOptions, control, geoJSON, latLng, tileLayer, DomEvent, Layer } from 'leaflet';
 import { DividerModule } from 'primeng/divider';
 import { DropdownModule } from 'primeng/dropdown';
 import { IconNewspaperComponent } from '../../../core/components/icons/newspaper/newspaper.component';
@@ -17,6 +17,24 @@ import { MapService } from '../../../core/services/map.service';
 import { AppState } from '../../../core/store';
 import { FilterState, initialState } from '../../../core/store/filter/filter.reducer';
 import { isDarkMode } from '../../../shared/utils/CommonUtils';
+
+// Extend Leaflet Layer type to include tooltipElement
+declare module 'leaflet' {
+  interface Layer {
+    tooltipElement?: L.Tooltip;
+    cityName?: string; // Add cityName property
+  }
+}
+
+interface TooltipPosition {
+  x: number;
+  y: number;
+  timestamp: number;
+}
+
+interface StoredPositions {
+  [key: string]: TooltipPosition;
+}
 
 @Component({
   selector: 'app-map',
@@ -34,12 +52,8 @@ import { isDarkMode } from '../../../shared/utils/CommonUtils';
   templateUrl: './map.component.html',
   styleUrl: './map.component.scss',
 })
-export class MapComponent {
-  filter: any;
-  ngOnDestroy() {
-    this.filter?.unsubscribe?.();
-  }
-
+export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
+  private filterSubscription: any;
   mapLocationData: Location[] = [];
   map: L.Map | null = null;
   geoJsonLayer: L.GeoJSON | null = null;
@@ -71,6 +85,53 @@ export class MapComponent {
     zoomControl: false,
   };
 
+  private provinceMapping: { [key: string]: string } = {
+    ACEH: "Aceh",
+    SUMUT: "Sumatera Utara",
+    SUMBAR: "Sumatera Barat",
+    RIAU: "Riau",
+    JAMBI: "Jambi",
+    SUMSEL: "Sumatera Selatan",
+    BENGKULU: "Bengkulu",
+    LAMPUNG: "Lampung",
+    BABEL: "Kepulauan Bangka Belitung",
+    KEPRI: "Kepulauan Riau",
+    "DKI JAKARTA": "DKI Jakarta",
+    JABAR: "Jawa Barat",
+    JATENG: "Jawa Tengah",
+    "DI. YOGYAKARTA": "DI Yogyakarta",
+    JATIM: "Jawa Timur",
+    BANTEN: "Banten",
+    BALI: "Bali",
+    NTB: "Nusa Tenggara Barat",
+    NTT: "Nusa Tenggara Timur",
+    KALBAR: "Kalimantan Barat",
+    KALTENG: "Kalimantan Tengah",
+    KALSEL: "Kalimantan Selatan",
+    KALTIM: "Kalimantan Timur",
+    KALTARA: "Kalimantan Utara",
+    SULUT: "Sulawesi Utara",
+    SULTENG: "Sulawesi Tengah",
+    SULSEL: "Sulawesi Selatan",
+    SULTRA: "Sulawesi Tenggara",
+    GORONTALO: "Gorontalo",
+    SULBAR: "Sulawesi Barat",
+    MALUKU: "Maluku",
+    MALUT: "Maluku Utara",
+    PAPUA: "Papua",
+    "PAPUA BARAT": "Papua Barat",
+    "PAPUA BARAT DAYA": "Papua Barat Daya",
+    "PAPUA SELATAN": "Papua Selatan",
+    "PAPUA TENGAH": "Papua Tengah",
+    "PAPUA PEGUNUNGAN": "Papua Pegunungan"
+  };
+
+  private tooltipDragKeyPressed = false;
+  private storedPositions: StoredPositions = {};
+  private readonly STORAGE_KEY = 'leaflet_tooltip_positions';
+  private tooltipDataMap: Map<HTMLElement, { layer: L.Layer, name: string, originalTransform: string }> = new Map();
+  private cityLayerSetupQueue: { layer: L.Layer, name: string }[] = [];
+
   constructor(
     private mapService: MapService,
     private store: Store<AppState>,
@@ -82,32 +143,368 @@ export class MapComponent {
 
   ngOnInit(): void {
     this.isLoadingArticles = true;
-    this.filter = this.filterService.subscribe(this.onFilterChange);
+    this.filterSubscription = this.filterService.subscribe(this.onFilterChange);
+    this.loadStoredPositions();
+    this.setupKeyboardListeners();
   }
 
   ngAfterViewInit(): void {
-    this.fetchCitiesCount(this.filter);
+    // Initial setup complete
   }
 
-  navigateInsideZone(article_id: string) {
+  ngOnDestroy(): void {
+    this.filterSubscription?.unsubscribe?.();
+    this.removeKeyboardListeners();
+  }
+
+  // ============================================================================
+  // STORAGE MANAGEMENT
+  // ============================================================================
+
+  private loadStoredPositions(): void {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        this.storedPositions = JSON.parse(stored);
+        console.log('Loaded stored positions:', Object.keys(this.storedPositions).length);
+      }
+    } catch (error) {
+      console.error('Error loading stored positions:', error);
+      this.storedPositions = {};
+    }
+  }
+
+  private savePosition(name: string, x: number, y: number): void {
+    this.storedPositions[name] = {
+      x,
+      y,
+      timestamp: Date.now()
+    };
+
+    try {
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.storedPositions));
+      console.log(`Saved position for ${name}:`, { x, y });
+    } catch (error) {
+      console.error('Error saving position:', error);
+    }
+  }
+
+  private getStoredPosition(name: string): TooltipPosition | null {
+    return this.storedPositions[name] || null;
+  }
+
+  public resetTooltipPositions(): void {
+    // Clear stored positions
+    this.storedPositions = {};
+    try {
+      localStorage.removeItem(this.STORAGE_KEY);
+    } catch (error) {
+      console.error('Error clearing positions:', error);
+    }
+
+    // Reset all tooltips to their original Leaflet positions
+    this.tooltipDataMap.forEach((data, tooltipElement) => {
+      // Clear custom offset data
+      tooltipElement.dataset['customX'] = '0';
+      tooltipElement.dataset['customY'] = '0';
+      
+      // Remove any custom transform
+      tooltipElement.style.transform = data.originalTransform || '';
+    });
+
+    // Force Leaflet to re-render
+    if (this.map) {
+      this.map.invalidateSize();
+    }
+  }
+
+  // ============================================================================
+  // KEYBOARD EVENT HANDLERS
+  // ============================================================================
+
+  private setupKeyboardListeners(): void {
+    document.addEventListener('keydown', this.handleKeyDown);
+    document.addEventListener('keyup', this.handleKeyUp);
+  }
+
+  private removeKeyboardListeners(): void {
+    document.removeEventListener('keydown', this.handleKeyDown);
+    document.removeEventListener('keyup', this.handleKeyUp);
+  }
+
+  private handleKeyDown = (e: KeyboardEvent): void => {
+    if (e.altKey && !this.tooltipDragKeyPressed) {
+      this.tooltipDragKeyPressed = true;
+      document.body.style.cursor = 'move';
+      
+      if (this.map) {
+        this.map.dragging.disable();
+      }
+      
+      this.updateTooltipDragState(true);
+    }
+  }
+
+  private handleKeyUp = (e: KeyboardEvent): void => {
+    if (!e.altKey && this.tooltipDragKeyPressed) {
+      this.tooltipDragKeyPressed = false;
+      document.body.style.cursor = '';
+      
+      if (this.map) {
+        this.map.dragging.enable();
+      }
+      
+      this.updateTooltipDragState(false);
+    }
+  }
+
+  private updateTooltipDragState(enabled: boolean): void {
+    const tooltips = document.querySelectorAll('.draggable-tooltip');
+    
+    tooltips.forEach(tooltipElement => {
+      const htmlElement = tooltipElement as HTMLElement;
+      
+      if (enabled) {
+        htmlElement.classList.add('drag-enabled');
+      } else {
+        htmlElement.classList.remove('drag-enabled');
+      }
+    });
+  }
+
+  // ============================================================================
+  // TOOLTIP DRAGGING LOGIC
+  // ============================================================================
+
+  private setupTooltipDragging(layer: L.Layer, name: string, isCity: boolean = false): void {
+    // Wait for tooltip to be rendered
+    setTimeout(() => {
+      try {
+        const tooltip = (layer as any).getTooltip();
+        if (!tooltip || !tooltip._container) {
+          console.warn(`Tooltip container not found for: ${name} (${isCity ? 'city' : 'province'})`);
+          return;
+        }
+
+        const tooltipElement = tooltip._container as HTMLElement;
+        
+        // Check if already setup to avoid duplicates
+        if (this.tooltipDataMap.has(tooltipElement)) {
+          console.log(`Tooltip already setup for: ${name}, skipping`);
+          return;
+        }
+        
+        console.log(`Setting up tooltip for: ${name} (${isCity ? 'city' : 'province'})`);
+        
+        // Store the ORIGINAL Leaflet transform
+        const originalTransform = tooltipElement.style.transform || '';
+        
+        // Store reference for later use
+        this.tooltipDataMap.set(tooltipElement, { 
+          layer, 
+          name, 
+          originalTransform 
+        });
+
+        // Store name in dataset for easy retrieval
+        tooltipElement.dataset['tooltipName'] = name;
+        tooltipElement.dataset['tooltipType'] = isCity ? 'city' : 'province';
+
+        // Apply stored position if exists
+        const storedPos = this.getStoredPosition(name);
+        if (storedPos) {
+          console.log(`Applying stored position for ${name}:`, storedPos);
+          this.applyCustomPosition(tooltipElement, storedPos.x, storedPos.y);
+        } else {
+          // Apply small offset to prevent initial overlap
+          this.applyInitialOffset(tooltipElement, name, isCity);
+        }
+
+        // Setup drag handlers
+        this.addDragHandlers(tooltipElement, name);
+
+        // Prevent tooltip click from propagating to layer
+        DomEvent.disableClickPropagation(tooltipElement);
+
+        // Set up reposition listener for zoom/pan
+        this.setupTooltipRepositionListener(layer, tooltipElement, name);
+        
+        console.log(`✓ Tooltip dragging setup complete for: ${name}`);
+      } catch (error) {
+        console.error(`Error setting up tooltip for ${name}:`, error);
+      }
+    }, isCity ? 200 : 100); // Longer delay for city tooltips
+  }
+
+  private applyInitialOffset(tooltipElement: HTMLElement, name: string, isCity: boolean = false): void {
+    // Create a deterministic but varied offset based on name
+    const hash = this.hashCode(name);
+    
+    // Different offsets for cities vs provinces to avoid overlap
+    const baseOffset = isCity ? 30 : 20;
+    const offsetX = (hash % baseOffset) - (baseOffset / 2);
+    const offsetY = ((hash >> 4) % baseOffset) - (baseOffset / 2);
+
+    tooltipElement.dataset['customX'] = offsetX.toString();
+    tooltipElement.dataset['customY'] = offsetY.toString();
+
+    this.updateTooltipTransform(tooltipElement);
+  }
+
+  private applyCustomPosition(tooltipElement: HTMLElement, x: number, y: number): void {
+    tooltipElement.dataset['customX'] = x.toString();
+    tooltipElement.dataset['customY'] = y.toString();
+
+    this.updateTooltipTransform(tooltipElement);
+  }
+
+  private updateTooltipTransform(tooltipElement: HTMLElement): void {
+    const customX = parseFloat(tooltipElement.dataset['customX'] || '0');
+    const customY = parseFloat(tooltipElement.dataset['customY'] || '0');
+
+    // Get the ORIGINAL Leaflet transform
+    const tooltipData = this.tooltipDataMap.get(tooltipElement);
+    const originalTransform = tooltipData?.originalTransform || tooltipElement.style.transform;
+    
+    if (!originalTransform) {
+      // If no transform exists, create a new one
+      tooltipElement.style.transform = `translate(${customX}px, ${customY}px)`;
+      return;
+    }
+
+    // Parse the existing transform
+    const translateMatch = originalTransform.match(/translate3d\(([^,]+),\s*([^,]+),\s*([^)]+)\)/);
+    
+    if (translateMatch) {
+      // Apply custom offset on top of Leaflet's transform
+      const baseX = parseFloat(translateMatch[1]);
+      const baseY = parseFloat(translateMatch[2]);
+      const z = translateMatch[3];
+      
+      tooltipElement.style.transform = `translate3d(${baseX + customX}px, ${baseY + customY}px, ${z})`;
+    } else {
+      // Try to match translate2d
+      const translate2dMatch = originalTransform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+      if (translate2dMatch) {
+        const baseX = parseFloat(translate2dMatch[1]);
+        const baseY = parseFloat(translate2dMatch[2]);
+        tooltipElement.style.transform = `translate(${baseX + customX}px, ${baseY + customY}px)`;
+      } else {
+        // No existing transform, just apply custom
+        tooltipElement.style.transform = `translate(${customX}px, ${customY}px)`;
+      }
+    }
+  }
+
+  private addDragHandlers(tooltipElement: HTMLElement, name: string): void {
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let initialCustomX = 0;
+    let initialCustomY = 0;
+
+    const onMouseDown = (e: MouseEvent) => {
+      if (!this.tooltipDragKeyPressed) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      
+      initialCustomX = parseFloat(tooltipElement.dataset['customX'] || '0');
+      initialCustomY = parseFloat(tooltipElement.dataset['customY'] || '0');
+
+      tooltipElement.classList.add('dragging');
+      
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !this.tooltipDragKeyPressed) return;
+
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+
+      const newCustomX = initialCustomX + deltaX;
+      const newCustomY = initialCustomY + deltaY;
+
+      tooltipElement.dataset['customX'] = newCustomX.toString();
+      tooltipElement.dataset['customY'] = newCustomY.toString();
+
+      this.updateTooltipTransform(tooltipElement);
+    };
+
+    const onMouseUp = () => {
+      if (!isDragging) return;
+
+      isDragging = false;
+      tooltipElement.classList.remove('dragging');
+
+      // Save the final position
+      const finalX = parseFloat(tooltipElement.dataset['customX'] || '0');
+      const finalY = parseFloat(tooltipElement.dataset['customY'] || '0');
+      this.savePosition(name, finalX, finalY);
+
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    tooltipElement.addEventListener('mousedown', onMouseDown);
+  }
+
+  private hashCode(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
+  }
+
+  // ============================================================================
+  // TOOLTIP REPOSITION LISTENER (for zoom/pan updates)
+  // ============================================================================
+
+  private setupTooltipRepositionListener(layer: L.Layer, tooltipElement: HTMLElement, name: string): void {
+    if (!this.map) return;
+
+    // Store the cleanup function on the layer
+    (layer as any)._tooltipCleanup = () => {
+      // Cleanup will be handled when layer is removed
+    };
+  }
+
+  // ============================================================================
+  // NAVIGATION
+  // ============================================================================
+
+  navigateInsideZone(article_id: string): void {
     this.ngZone.run(() => {
       this.router.navigate([`/dashboard/articles/${article_id}`]);
     });
   }
 
-  fetchProvinceCount = (filter: FilterRequestPayload | FilterState = initialState) => {
+  // ============================================================================
+  // DATA FETCHING
+  // ============================================================================
+
+  fetchProvinceCount = (filter: FilterRequestPayload | FilterState = initialState): void => {
     this.mapService.getAllCountProv(filter as FilterRequestPayload, '').subscribe((res) => {
       this.addProvGeoJSONLayer(filter, res);
     });
   }
 
-  fetchCitiesCount = (filter: FilterRequestPayload | FilterState = initialState) => {
+  fetchCitiesCount = (filter: FilterRequestPayload | FilterState = initialState): void => {
     this.mapService.getAllCount(filter as FilterRequestPayload).subscribe((res) => {
       this.addCitiesGeoJSONLayer(filter, res);
     });
   }
 
-  fetchArticlesByGeo = (filter: FilterRequestPayload | FilterState | null, location = this.selectedLoc) => {
+  fetchArticlesByGeo = (filter: FilterRequestPayload | FilterState | null, location = this.selectedLoc): void => {
     this.isLoadingArticles = true;
     this.selectedLoc = location;
 
@@ -121,11 +518,15 @@ export class MapComponent {
     });
   };
 
-  addLegendControl = () => {
+  // ============================================================================
+  // MAP CONTROLS
+  // ============================================================================
+
+  addLegendControl = (): void => {
     if (!this.map) return;
-    const legendControl = control.layers(undefined, undefined, {
-      position: 'bottomright',
-    });
+    
+    const legendControl = control.layers(undefined, undefined, { position: 'bottomright' });
+    
     legendControl.onAdd = () => {
       const legendContainer = DomUtil.create('div', 'legend');
       const legendContent = `
@@ -141,54 +542,17 @@ export class MapComponent {
       legendContainer.innerHTML = legendContent;
       return legendContainer;
     };
+    
     legendControl.addTo(this.map);
   };
 
+  // ============================================================================
+  // GEOJSON LAYERS
+  // ============================================================================
+
   addProvGeoJSONLayer(filter: any, data: ProvinceCount): void {
-
-    const provinceMapping: { [key: string]: string } = {
-      ACEH: "Aceh",
-      SUMUT: "Sumatera Utara",
-      SUMBAR: "Sumatera Barat",
-      RIAU: "Riau",
-      JAMBI: "Jambi",
-      SUMSEL: "Sumatera Selatan",
-      BENGKULU: "Bengkulu",
-      LAMPUNG: "Lampung",
-      BABEL: "Kepulauan Bangka Belitung",
-      KEPRI: "Kepulauan Riau",
-      "DKI JAKARTA": "DKI Jakarta",
-      JABAR: "Jawa Barat",
-      JATENG: "Jawa Tengah",
-      "DI. YOGYAKARTA": "DI Yogyakarta",
-      JATIM: "Jawa Timur",
-      BANTEN: "Banten",
-      BALI: "Bali",
-      NTB: "Nusa Tenggara Barat",
-      NTT: "Nusa Tenggara Timur",
-      KALBAR: "Kalimantan Barat",
-      KALTENG: "Kalimantan Tengah",
-      KALSEL: "Kalimantan Selatan",
-      KALTIM: "Kalimantan Timur",
-      KALTARA: "Kalimantan Utara",
-      SULUT: "Sulawesi Utara",
-      SULTENG: "Sulawesi Tengah",
-      SULSEL: "Sulawesi Selatan",
-      SULTRA: "Sulawesi Tenggara",
-      GORONTALO: "Gorontalo",
-      SULBAR: "Sulawesi Barat",
-      MALUKU: "Maluku",
-      MALUT: "Maluku Utara",
-      PAPUA: "Papua",
-      "PAPUA BARAT": "Papua Barat",
-      "PAPUA BARAT DAYA": "Papua Barat Daya",
-      "PAPUA SELATAN": "Papua Selatan",
-      "PAPUA TENGAH": "Papua Tengah",
-      "PAPUA PEGUNUNGAN": "Papua Pegunungan"
-    };
-
     const getDataByLocation = (featureName: string) => {
-      const provinceKey = provinceMapping[featureName.toUpperCase()];
+      const provinceKey = this.provinceMapping[featureName.toUpperCase()];
       if (!provinceKey) {
         console.warn(`Province ${featureName} not found in the mapping.`);
         return null;
@@ -199,36 +563,55 @@ export class MapComponent {
 
     this.mapService.getGeoJsonDataProv().subscribe((data) => {
       if (!this.map) return;
+      
       this.geoJsonLayer = geoJSON(data, {
         onEachFeature: (feature, layer) => {
           const featureName = feature.properties.WADMPR.toUpperCase();
-          const tooltipContent = `${featureName}: ${getDataByLocation(featureName)?.value ?? 0}`;
+          const featureData = getDataByLocation(featureName);
+          const tooltipContent = `${featureName}: ${featureData?.value ?? 0}`;
 
-          layer.bindTooltip("<div style='font-size: 8px;'><b>" + `${tooltipContent}` + "</b></div>", {
+          const tooltip = L.tooltip({
             permanent: true,
-            direction: "center",
-            className: 'bg-color'
-          });
+            direction: 'center',
+            className: 'draggable-tooltip province-tooltip bg-color map-tooltip-padding',
+            opacity: 0.95,
+            interactive: true
+          }).setContent(`<div style="font-size: 7px; font-weight: bold;">${tooltipContent}</div>`);
+
+          layer.bindTooltip(tooltip);
+
+          // Setup dragging for this tooltip
+          this.setupTooltipDragging(layer, featureName, false);
 
           this.provinceLayers.set(featureName, layer);
 
           layer.on({
             click: (e) => {
+              if (this.tooltipDragKeyPressed) {
+                e.originalEvent.preventDefault();
+                e.originalEvent.stopPropagation();
+                return;
+              }
+              
               const clickedFeatureName = e.target.feature.properties.WADMPR.toUpperCase();
               this.removeProvinceLayer(clickedFeatureName);
 
               const hoveredLayer = e.target;
-              const featureData = getDataByLocation(clickedFeatureName);
+              const clickedFeatureData = getDataByLocation(clickedFeatureName);
               this.map?.fitBounds(e.target.getBounds());
+              
               hoveredLayer.setStyle({
-                fillColor: this.getMapColor(featureData?.value ?? 0),
+                fillColor: this.getMapColor(clickedFeatureData?.value ?? 0),
                 fillOpacity: 1,
               });
+              
               this.addCitiesLayer(clickedFeatureName);
             },
             mouseover: (e) => {
-              const hoveredLayer = e.target;
-              hoveredLayer.setStyle({ fillColor: isDarkMode() ? '#f1f4fa' : '#111827', fillOpacity: 1 });
+              e.target.setStyle({ 
+                fillColor: isDarkMode() ? '#f1f4fa' : '#111827', 
+                fillOpacity: 1 
+              });
             },
             mouseout: (e) => {
               const hoveredLayer = e.target;
@@ -254,13 +637,13 @@ export class MapComponent {
         },
       }).addTo(this.map);
 
-      this.map.createPane('label')
+      this.map.createPane('label');
     });
   }
 
   addCitiesGeoJSONLayer(filter: any, data: AllCount): void {
     const getDataByLocation = (featureName: string) => {
-      return data.data.find((location) => 
+      return data.data.find((location) =>
         location.key.toUpperCase() === featureName?.toUpperCase()
       );
     };
@@ -280,8 +663,6 @@ export class MapComponent {
               cityName = 'Kabupaten ' + cityName;
             }
 
-            // const type = feature.properties.TYPE_2;
-
             if (!provinceGroups.has(provinceName)) {
               provinceGroups.set(provinceName, L.layerGroup());
             }
@@ -289,35 +670,59 @@ export class MapComponent {
             const provinceGroup = provinceGroups.get(provinceName);
             provinceGroup?.addLayer(layer);
 
-            const tooltipContent = `${cityName}: ${getDataByLocation(cityName)?.value ?? 0}`;
+            // Store city name on layer object for easy access
+            (layer as any).cityName = cityName;
+            (layer as any).provinceName = provinceName;
 
-            layer.bindTooltip("<div style='font-size: 8px;'><b>" + tooltipContent + "</b></div>", {
+            const featureData = getDataByLocation(cityName);
+            const tooltipContent = `${cityName}: ${featureData?.value ?? 0}`;
+
+            const tooltip = L.tooltip({
               permanent: true,
-              direction: "center",
-              className: 'bg-color'
-            });
+              direction: 'center',
+              className: 'draggable-tooltip city-tooltip bg-color map-tooltip-padding',
+              opacity: 0.95,
+              interactive: true
+            }).setContent(`<div style="font-size: 6px; font-weight: bold;">${tooltipContent}</div>`);
+
+            layer.bindTooltip(tooltip);
+
+            // Queue this layer for tooltip setup
+            this.cityLayerSetupQueue.push({ layer, name: cityName });
 
             this.citiesLayers.set(cityName, layer);
 
             layer.on({
               click: (e) => {
+                if (this.tooltipDragKeyPressed) {
+                  e.originalEvent.preventDefault();
+                  e.originalEvent.stopPropagation();
+                  return;
+                }
+                
                 const clickedFeatureName = e.target.feature.properties.WADMKK;
                 this.map?.fitBounds(e.target.getBounds());
                 this.removeProvinceLayer(clickedFeatureName);
                 this.fetchArticlesByGeo(filter, clickedFeatureName);
               },
               mouseover: (e) => {
-                const hoveredLayer = e.target;
-                hoveredLayer.setStyle({ fillColor: isDarkMode() ? '#f1f4fa' : '#111827', fillOpacity: 1 });
+                if (!this.tooltipDragKeyPressed) {
+                  e.target.setStyle({ 
+                    fillColor: isDarkMode() ? '#f1f4fa' : '#111827', 
+                    fillOpacity: 1 
+                  });
+                }
               },
               mouseout: (e) => {
-                const hoveredLayer = e.target;
-                const featureData = getDataByLocation(cityName);
+                if (!this.tooltipDragKeyPressed) {
+                  const hoveredLayer = e.target;
+                  const featureData = getDataByLocation(cityName);
 
-                hoveredLayer.setStyle({
-                  fillColor: this.getMapColor(featureData?.value ?? 0),
-                  fillOpacity: 1,
-                });
+                  hoveredLayer.setStyle({
+                    fillColor: this.getMapColor(featureData?.value ?? 0),
+                    fillOpacity: 1,
+                  });
+                }
               },
             });
           },
@@ -338,10 +743,15 @@ export class MapComponent {
         });
 
         this.citiesLayersByProvince = provinceGroups;
+        
+        // Process city tooltip setup queue
+        setTimeout(() => {
+          this.processCityTooltipQueue();
+        }, 1000);
       },
       error: (error) => {
         console.error("Error loading GeoJSON data:", error);
-        this.isLoadingArticles = false; // Handle error case
+        this.isLoadingArticles = false;
       },
       complete: () => {
         this.isLoadingArticles = false;
@@ -349,8 +759,23 @@ export class MapComponent {
     });
   }
 
+  private processCityTooltipQueue(): void {
+    console.log(`Processing ${this.cityLayerSetupQueue.length} city tooltips in queue`);
+    
+    this.cityLayerSetupQueue.forEach((item, index) => {
+      setTimeout(() => {
+        this.setupTooltipDragging(item.layer, item.name, true);
+      }, index * 50); // Stagger setup to avoid performance issues
+    });
+    
+    this.cityLayerSetupQueue = [];
+  }
 
-  getLevel(num: number, min: number, max: number) {
+  // ============================================================================
+  // MAP STYLING
+  // ============================================================================
+
+  getLevel(num: number, min: number, max: number): number {
     if (num === 0) return 5;
 
     const range = max - min;
@@ -362,7 +787,7 @@ export class MapComponent {
     return 1;
   }
 
-  getMapColor(value: number) {
+  getMapColor(value: number): string {
     const colorGroup: { [x: number]: string } = {
       1: '#04351d',
       2: '#074727',
@@ -377,26 +802,24 @@ export class MapComponent {
     return colorGroup[level];
   }
 
-  onMapReady(map: L.Map) {
+  // ============================================================================
+  // MAP LIFECYCLE
+  // ============================================================================
+
+  onMapReady(map: L.Map): void {
     this.map = map;
-    const customZoomControl = control.zoom({
-      position: 'bottomleft',
-    });
+    const customZoomControl = control.zoom({ position: 'bottomleft' });
     this.map.addControl(customZoomControl);
     this.addLegendControl();
   }
 
-  onFilterTypeChange = (type_location: string) => {
-    if (this.geoJsonLayer) {
-      this.geoJsonLayer.removeFrom(this.map!);
-    }
+  onFilterTypeChange = (type_location: string): void => {
+    this.clearMapLayers();
     this.fetchProvinceCount({ ...this.filterService.filter, type_location });
   };
 
-  onFilterChange = (filterState: FilterState) => {
-    if (this.geoJsonLayer) {
-      this.geoJsonLayer.removeFrom(this.map!);
-    }
+  onFilterChange = (filterState: FilterState): void => {
+    this.clearMapLayers();
     this.fetchProvinceCount(filterState);
     this.fetchCitiesCount(filterState);
   };
@@ -408,27 +831,80 @@ export class MapComponent {
     }
   }
 
-  addCitiesLayer = (province: string) => {
-
-    console.log(`provinsi === ${province}`);
-
+  addCitiesLayer = (province: string): void => {
+    console.log(`Adding cities layer for province: ${province}`);
+    
     if (this.selectedLayerProv) {
       this.selectedGroupCities?.removeFrom(this.map!);
       this.selectedLayerProv.addTo(this.map!);
     }
 
-    const provinceLayer = this.provinceLayers.get(province); // Assuming `provinceLayers` stores province layers
+    const provinceLayer = this.provinceLayers.get(province);
     if (provinceLayer) {
       this.map?.removeLayer(provinceLayer);
     }
 
-    const cityLayerGroup = this.citiesLayersByProvince.get(province)
+    const cityLayerGroup = this.citiesLayersByProvince.get(province);
     if (cityLayerGroup) {
       cityLayerGroup.addTo(this.map!);
+      
+      // Set up tooltip dragging for city layers that are now visible
+      setTimeout(() => {
+        cityLayerGroup.eachLayer((layer: any) => {
+          if (layer.cityName) {
+            this.setupTooltipDragging(layer, layer.cityName, true);
+          }
+        });
+      }, 300);
     }
 
     this.selectedGroupCities = cityLayerGroup!;
     this.selectedLayerProv = provinceLayer!;
+  }
 
+  clearMapLayers(): void {
+    if (!this.map) return;
+
+    this.isLoadingArticles = true;
+
+    if (this.geoJsonLayer) {
+      this.geoJsonLayer.removeFrom(this.map);
+      this.geoJsonLayer = null;
+    }
+
+    // Clean up event listeners before removing layers
+    this.provinceLayers.forEach(layer => {
+      if ((layer as any)._tooltipCleanup) {
+        (layer as any)._tooltipCleanup();
+      }
+      if (this.map?.hasLayer(layer)) {
+        this.map.removeLayer(layer);
+      }
+    });
+    this.provinceLayers.clear();
+
+    this.citiesLayers.forEach(layer => {
+      if ((layer as any)._tooltipCleanup) {
+        (layer as any)._tooltipCleanup();
+      }
+      if (this.map?.hasLayer(layer)) {
+        this.map.removeLayer(layer);
+      }
+    });
+    this.citiesLayers.clear();
+
+    this.citiesLayersByProvince.forEach(group => {
+      if (this.map?.hasLayer(group)) {
+        this.map.removeLayer(group);
+      }
+    });
+    this.citiesLayersByProvince.clear();
+
+    this.selectedGroupCities = null;
+    this.selectedLayerProv = null;
+    
+    // Clear tooltip data map
+    this.tooltipDataMap.clear();
+    this.cityLayerSetupQueue = [];
   }
 }

@@ -22,4 +22,5 @@ export interface FilterRequestPayload {
   sentiments?: string;
   start_time?: string;
   end_time?: string;
+  media_tier?: number | null | string;
 }

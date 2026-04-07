@@ -203,7 +203,7 @@ export class SearchComponent {
       this.first = e.first!;
     }
 
-    this.fetchArticles({
+    this.fetchArticlesV4({
       start_date: moment(this.startDate).format('YYYY-MM-DD'),
       end_date: moment(this.endDate).format('YYYY-MM-DD'),
       search_field: this.selectedContent,

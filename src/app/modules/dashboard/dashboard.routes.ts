@@ -20,6 +20,8 @@ import { SocialMediaOverviewComponent } from './social-media-overview/social-med
 import { SpokespersonComponent } from './spokesperson/spokesperson.component';
 import { TopArticlesComponent } from './top-articles/top-articles.component';
 import { AdminComponent } from './admin/admin.component';
+import { EpaperComponent } from './epaper/epaper.component';
+import { DownloadComponent } from './download/download.component';
 
 interface ChildrenRoute extends Route {
   withFilter?: boolean;
@@ -148,6 +150,19 @@ export const DashboardRoutes: DashboardRoutesProps[] = [
         path: 'social-media-index',
         title: 'Social Media Index',
         component: SocialMediaIndexComponent,
+        withFilter: true,
+      },
+      {
+        path: 'epaper',
+        title: 'E-Paper',
+        component: EpaperComponent,
+        canActivate: mapToCanActivate([AuthGuardService]),
+        withFilter: true,
+      },
+      {
+        path: 'download',
+        title: 'Download',
+        component: DownloadComponent,
         withFilter: true,
       },
       {

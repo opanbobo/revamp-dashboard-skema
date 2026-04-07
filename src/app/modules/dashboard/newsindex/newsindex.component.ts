@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, ViewChild } from '@angular/core';
-import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { ConfirmationService, MenuItem, MessageService, SortEvent } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ChipModule } from 'primeng/chip';
@@ -18,7 +18,7 @@ import { TagModule } from 'primeng/tag';
 import { TieredMenuModule } from 'primeng/tieredmenu';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
-import { debounceTime, distinctUntilChanged, forkJoin } from 'rxjs';
+import { debounceTime, distinctUntilChanged, forkJoin, Observable } from 'rxjs';
 import { ButtonSecondaryComponent } from '../../../core/components/button-secondary/button-secondary.component';
 import { IconInfoComponent } from '../../../core/components/icons/info/info.component';
 import { IconNewspaperComponent } from '../../../core/components/icons/newspaper/newspaper.component';
@@ -34,12 +34,17 @@ import { FilterService } from '../../../core/services/filter.service';
 import { getUserFromLocalStorage } from '../../../shared/utils/AuthUtils';
 import { NEGATIVE_TONE, NEUTRAL_TONE, POSITIVE_TONE, TONE_MAP } from '../../../shared/utils/Constants';
 import { isEmpty, isValidEmail } from './../../../shared/utils/CommonUtils';
+import { CalendarModule } from 'primeng/calendar';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { HttpErrorResponse } from '@angular/common/http';
 
 const highlightKeywords = (content: string, keywords: string[]): string => {
   const cleanedKeywords = keywords.map((keyword) => keyword.replace(/"/g, ''));
   const regex = new RegExp(cleanedKeywords.join('|'), 'gi');
   return content.replace(regex, (match) => `<mark>${match}</mark>`);
 };
+
+type DownloadFormat = 'pdf' | 'excel' | 'docx';
 
 @Component({
   selector: 'app-newsindex',
@@ -59,6 +64,7 @@ const highlightKeywords = (content: string, keywords: string[]): string => {
     PaginatorModule,
     CommonModule,
     ConfirmPopupModule,
+    ConfirmDialogModule,
     DialogModule,
     FormsModule,
     ReactiveFormsModule,
@@ -68,6 +74,7 @@ const highlightKeywords = (content: string, keywords: string[]): string => {
     MultiSelectModule,
     ToastModule,
     TooltipModule,
+    CalendarModule
   ],
   providers: [ConfirmationService, MessageService],
   templateUrl: './newsindex.component.html',
@@ -93,6 +100,8 @@ export class NewsindexComponent {
   });
   modalUpdateOpen: boolean = false;
   showSendMailDialog: boolean = false;
+  sendDate: Date | null = null;
+  categoriesForm: FormGroup;
 
   isLoading: boolean = false;
   editedArticle!: Article;
@@ -100,6 +109,7 @@ export class NewsindexComponent {
   availableCategories: Category[] = [];
 
   sendMailCtrl: FormControl = new FormControl('', Validators.required);
+  bccMailCtrl = new FormControl('');
   editedValues = this.fb.group({
     title: '',
     issue: '',
@@ -128,15 +138,15 @@ export class NewsindexComponent {
   listAction: MenuItem[] = [
     {
       label: 'Download PDF',
-      command: () => this.downloadAsPdf(),
+      command: () => this.openDownloadDialog('pdf'),
     },
     {
-      label: 'Download DOC',
-      command: () => this.downloadAsDocs(),
+      label: 'Download DOCX',
+      command: () => this.openDownloadDialog('docx'),
     },
     {
       label: 'Download EXCEL',
-      command: () => this.downloadAsExcel(),
+      command: () => this.openDownloadDialog('excel'),
     },
     {
       label: 'Send to E-mail',
@@ -165,14 +175,94 @@ export class NewsindexComponent {
   order: string = 'asc';
   orderBy: string = 'datee';
 
+  showDownloadJobDialog = false;
+
+  jobNameCtrl = new FormControl('', Validators.required);
+
+  currentDownloadFormat: DownloadFormat | null = null;
+
   constructor(
     private articleService: ArticleService,
     private filterService: FilterService,
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
     private sanitizer: DomSanitizer,
-    private fb: FormBuilder
-  ) { }
+    private fb: FormBuilder,
+    private router: Router
+  ) {
+    this.categoriesForm = this.fb.group({
+      categories: this.fb.array([])
+    });
+  }
+
+  get categoriesArray(): FormArray {
+    return this.categoriesForm.get('categories') as FormArray;
+  }
+
+  getTitlesArray(categoryIndex: number): FormArray {
+    return this.categoriesArray.at(categoryIndex).get('titles') as FormArray;
+  }
+
+  addCategory(): void {
+    const categoryGroup = this.fb.group({
+      categoryTitle: ['', Validators.required],
+      titles: this.fb.array([this.fb.control('', Validators.required)])
+    });
+    this.categoriesArray.push(categoryGroup);
+  }
+
+  removeCategory(index: number): void {
+    this.categoriesArray.removeAt(index);
+  }
+
+  addTitle(categoryIndex: number): void {
+    const titlesArray = this.getTitlesArray(categoryIndex);
+    titlesArray.push(this.fb.control('', Validators.required));
+  }
+
+  removeTitle(categoryIndex: number, titleIndex: number): void {
+    const titlesArray = this.getTitlesArray(categoryIndex);
+    titlesArray.removeAt(titleIndex);
+
+    if (titlesArray.length === 0) {
+      this.removeCategory(categoryIndex);
+    }
+  }
+
+  cancelSendMail(): void {
+    this.showSendMailDialog = false;
+    this.sendDate = null;
+    this.categoriesForm.reset();
+    this.categoriesArray.clear();
+  }
+
+  private buildArticleTitleListFromForm(): Record<string, string[]> {
+    const result: Record<string, string[]> = {};
+
+    // assume you already have a getter like categoriesArray or `this.categoriesForm.get('categories')`
+    const categoriesArray = this.categoriesForm?.get('categories') as FormArray;
+    if (!categoriesArray || !categoriesArray.length) {
+      return result;
+    }
+
+    categoriesArray.controls.forEach((categoryGroup: AbstractControl) => {
+      const titleControl = categoryGroup.get('categoryTitle');
+      const titlesFormArray = categoryGroup.get('titles') as FormArray;
+
+      const categoryTitle = titleControl?.value?.toString().trim();
+      if (!categoryTitle) return;
+
+      const titles: string[] = (titlesFormArray?.value || [])
+        .map((t: any) => (t || '').toString().trim())
+        .filter((t: string) => t.length > 0);
+
+      if (titles.length) {
+        result[categoryTitle] = titles;
+      }
+    });
+
+    return result;
+  }
 
   ngOnInit() {
     this.filter = this.filterService.subscribe((filter) => {
@@ -202,7 +292,7 @@ export class NewsindexComponent {
     }
 
     this.articleService
-      .getUserEditing({
+      .getUserEditingV3({
         ...this.filterService.filter,
         ...filter,
         term: this.searchForm.get('query')?.value ?? '',
@@ -214,7 +304,13 @@ export class NewsindexComponent {
       }, order, order_by)
       .subscribe((res) => {
         this.isLoading = false;
-        this.articles = res.data;
+        // this.articles = res.data;
+        this.articles = res.data.map((article: Article) => ({
+          ...article,
+          sanitizedContent: this.sanitizer.bypassSecurityTrustHtml(
+            article.content ?? ''
+          )
+        }));
         this.totalRecords = res.recordsTotal;
       });
   };
@@ -385,102 +481,264 @@ export class NewsindexComponent {
   }
 
   openEditModal = async (article: Article) => {
-    const categoriesResp = await this.articleService.getSubCategoriesDistinct().toPromise();
 
-    const keywordRes = await this.articleService.getKeywordsByArticleId(article.article_id).toPromise();
+    const categoriesResp = await this.articleService
+      .getSubCategoriesDistinct()
+      .toPromise();
+
+    const keywordRes = await this.articleService
+      .getKeywordsByArticleId(article.article_id)
+      .toPromise();
 
     const cleanedAndSplitData = keywordRes!.data.flatMap((item: string) => {
       const cleaned = item.replace(/^""|""$/g, "");
-      return cleaned.split("\" \"").map((keyword) => keyword.replace(/\"/g, "").trim()); // Split and clean
+      return cleaned
+        .split('" "')
+        .map((keyword) => keyword.replace(/"/g, "").trim());
     });
 
     const uniqueKeywords = Array.from(new Set(cleanedAndSplitData));
     const finalKeyword = uniqueKeywords.map((keyword) => `"${keyword}"`);
 
     const hightligtedWords = highlightKeywords(article.content, finalKeyword);
-    this.sanitizedContent = this.sanitizer.bypassSecurityTrustHtml(hightligtedWords);
+    this.sanitizedContent =
+      this.sanitizer.bypassSecurityTrustHtml(hightligtedWords);
 
     this.availableCategories = categoriesResp?.results ?? [];
+
+    const availableCategoryIds = new Set(
+      this.availableCategories.map((c) => c.category_id)
+    );
+
+    this.editedCategories = article.categories
+      .filter((categoryId) => availableCategoryIds.has(categoryId))
+      .map((categoryId) => ({
+        category_id: categoryId,
+      }));
+
     this.editedArticle = article;
-    this.editedCategories = article.categories.map((val) => ({
-      category_id: val,
-    }));
 
     this.editedValues.setValue({
       title: article.title ?? '',
-      issue: article?.issue ?? '',
-      summary: article?.summary ?? '',
+      issue: article.issue ?? '',
+      summary: article.summary ?? '',
     });
+
     this.modalUpdateOpen = true;
   };
 
-  downloadAsPdf = () => {
-    this.isLoading = true;
-    this.articleService
-      .downloadPdfs(this.selectedArticles)
-      .subscribe(({ data }) => {
-        this.selectedArticles = [];
-        if (data.link) {
-          window.open(data.link, '_blank');
-        }
-      })
-      .add(() => {
-        this.isLoading = false;
-      });
-  };
+  // downloadAsPdf = () => {
+  //   if (!this.jobNameCtrl.value) return;
 
-  downloadAsDocs = () => {
-    this.isLoading = true;
-    this.articleService
-      .downloadDocs(this.selectedArticles)
-      .subscribe(({ data }) => {
-        this.selectedArticles = [];
-        if (data) {
-          window.open(data, '_blank');
-        }
-      })
-      .add(() => {
-        this.isLoading = false;
-      });
-  };
+  //   this.isLoading = true;
 
-  downloadAsExcel = () => {
-    this.isLoading = true;
-    this.articleService
-      .downloadSelectedExcel(
-        { ...this.filterService.filter },
-        this.selectedArticles,
-        this.searchForm.get('query')?.value ?? ''
-      )
-      .subscribe(({ data }) => {
-        window.open(data.file_url, '_blank')?.focus()
-      })
-      .add(() => {
-        this.isLoading = false;
-      });
-  }
+  //   this.articleService
+  //     .downloadPdfsV2(this.jobNameCtrl.value, this.selectedArticles)
+  //     .subscribe({
+  //       next: (res) => {
+  //         if (res.status === 'success') {
+  //           const jobId = res.data.id;
+
+  //           // Clear selection + close dialog
+  //           this.selectedArticles = [];
+  //           this.showJobDialog = false;
+
+  //           // Show toast first
+  //           this.messageService.add({
+  //             severity: 'success',
+  //             summary: 'Download Queued',
+  //             detail: res.message,
+  //           });
+
+  //           // Show redirect option popup
+  //           this.confirmationService.confirm({
+  //             message:
+  //               'Your PDF job has been queued successfully. Do you want to open the progress page now?',
+  //             header: 'Job Created',
+  //             icon: 'pi pi-check-circle',
+  //             acceptLabel: 'Yes, Redirect',
+  //             rejectLabel: 'No, Stay Here',
+
+  //             accept: () => {
+  //               this.router.navigate(['/dashboard/download']);
+  //             },
+
+  //             reject: () => {
+  //               // Do nothing (stay on current page)
+  //             },
+  //           });
+  //         }
+  //       },
+
+  //       error: () => {
+  //         this.messageService.add({
+  //           severity: 'error',
+  //           summary: 'Failed',
+  //           detail: 'Unable to queue download job.',
+  //         });
+  //       },
+  //     })
+  //     .add(() => {
+  //       this.isLoading = false;
+  //     });
+  // };
+
+  // downloadAsDocs = () => {
+  //   if (!this.docsJobNameCtrl.value) return;
+
+  //   this.isLoading = true;
+
+  //   this.articleService
+  //     .downloadDocsV2(this.docsJobNameCtrl.value, this.selectedArticles)
+  //     .subscribe({
+  //       next: (res) => {
+  //         if (res.status === 'success') {
+  //           // Reset UI
+  //           this.selectedArticles = [];
+  //           this.showDocsJobDialog = false;
+
+  //           // Toast
+  //           this.messageService.add({
+  //             severity: 'success',
+  //             summary: 'DOCX Job Queued',
+  //             detail: res.message,
+  //           });
+
+  //           // Optional redirect confirm
+  //           this.confirmationService.confirm({
+  //             header: 'DOCX Download Started',
+  //             message:
+  //               'Your DOCX job has been queued successfully.\nDo you want to open the Download page now?',
+  //             icon: 'pi pi-check-circle',
+
+  //             acceptLabel: 'Yes, Redirect',
+  //             rejectLabel: 'No, Stay Here',
+
+  //             accept: () => {
+  //               this.router.navigate(['/dashboard/download']);
+  //             },
+  //           });
+  //         }
+  //       },
+
+  //       error: () => {
+  //         this.messageService.add({
+  //           severity: 'error',
+  //           summary: 'Failed',
+  //           detail: 'Unable to queue DOCX download job.',
+  //         });
+  //       },
+  //     })
+  //     .add(() => {
+  //       this.isLoading = false;
+  //     });
+  // };
+
+
+  // downloadAsExcel = () => {
+  //   if (!this.excelJobNameCtrl.value) return;
+
+  //   this.isLoading = true;
+
+  //   this.articleService
+  //     .downloadExcelV2(this.excelJobNameCtrl.value, this.selectedArticles)
+  //     .subscribe({
+  //       next: (res) => {
+  //         if (res.status === 'success') {
+  //           // Clear selection + close dialog
+  //           this.selectedArticles = [];
+  //           this.showExcelJobDialog = false;
+
+  //           // Toast
+  //           this.messageService.add({
+  //             severity: 'success',
+  //             summary: 'Excel Job Queued',
+  //             detail: res.message,
+  //           });
+
+  //           // Optional redirect popup
+  //           this.confirmationService.confirm({
+  //             header: 'Excel Download Started',
+  //             message:
+  //               'Your Excel job has been queued successfully.\nDo you want to open the Download page now?',
+  //             icon: 'pi pi-check-circle',
+
+  //             acceptLabel: 'Yes, Redirect',
+  //             rejectLabel: 'No, Stay Here',
+
+  //             accept: () => {
+  //               this.router.navigate(['/dashboard/download']);
+  //             },
+  //           });
+  //         }
+  //       },
+
+  //       error: () => {
+  //         this.messageService.add({
+  //           severity: 'error',
+  //           summary: 'Failed',
+  //           detail: 'Unable to queue Excel download job.',
+  //         });
+  //       },
+  //     })
+  //     .add(() => {
+  //       this.isLoading = false;
+  //     });
+  // };
+
 
   sendMail() {
     this.isLoading = true;
-    this.articleService
-      .sendMail(this.sendMailCtrl.value, this.selectedArticles)
-      .subscribe(() => {
-        this.selectedArticles = [];
+    this.articleService.sendMail(
+      this.sendMailCtrl.value,
+      this.bccMailCtrl.value ?? undefined,
+      this.selectedArticles,
+      this.sendDate,
+      this.buildArticleTitleListFromForm()
+    ).subscribe({
+      next: () => {
+        this.resetSendMailForm();
         this.showSendMailDialog = false;
+
         this.messageService.add({
           severity: 'success',
           summary: 'Success',
           detail: 'Email sent!',
         });
-      })
-      .add(() => {
-        this.isLoading = false;
-      });
+      },
+      error: () => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to send email.',
+        });
+      }
+    }).add(() => {
+      this.isLoading = false;
+    });
+  }
+
+  private resetSendMailForm(): void {
+    this.sendMailCtrl.reset('');
+    this.bccMailCtrl.reset('');
+    this.sendDate = null;
+    this.selectedArticles = [];
+    const categoriesArray = this.categoriesForm.get('categories') as FormArray;
+    if (categoriesArray) {
+      categoriesArray.clear();
+    }
+    this.categoriesForm.markAsPristine();
+    this.categoriesForm.markAsUntouched();
   }
 
   isValidEmail(emails: string): boolean {
     if (isEmpty(emails)) return false;
     return emails.split(',').every((v) => isValidEmail(v.trim()));
+  }
+
+  isValidOptionalEmail(emails: string | null): boolean {
+    if (!emails || emails.trim() === '') return true;
+    return this.isValidEmail(emails);
   }
 
   openPreview(article: Article) {
@@ -499,4 +757,101 @@ export class NewsindexComponent {
   get rowCount() {
     return this.selectedTones.length;
   }
+
+  queueDownloadJob() {
+    if (!this.jobNameCtrl.value || !this.currentDownloadFormat) return;
+
+    this.isLoading = true;
+
+    let request$: Observable<any>;
+
+    // Pick correct endpoint based on format
+    switch (this.currentDownloadFormat) {
+      case 'pdf':
+        request$ = this.articleService.downloadPdfsV2(
+          this.jobNameCtrl.value,
+          this.selectedArticles
+        );
+        break;
+
+      case 'excel':
+        request$ = this.articleService.downloadExcelV2(
+          this.jobNameCtrl.value,
+          this.selectedArticles
+        );
+        break;
+
+      case 'docx':
+        request$ = this.articleService.downloadDocsV2(
+          this.jobNameCtrl.value,
+          this.selectedArticles
+        );
+        break;
+
+      default:
+        this.isLoading = false;
+        return;
+    }
+
+    request$
+      .subscribe({
+        next: (res) => {
+          if (res.status === 'success') {
+            // Reset UI
+            this.selectedArticles = [];
+            this.showDownloadJobDialog = false;
+
+            // Toast
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Job Queued',
+              detail: res.message,
+            });
+
+            // Optional redirect
+            this.confirmationService.confirm({
+              header: 'Download Started',
+              message:
+                'Your download job has been queued successfully.\nDo you want to open the Download page now?',
+              icon: 'pi pi-check-circle',
+
+              acceptLabel: 'Yes, Redirect',
+              rejectLabel: 'No, Stay Here',
+
+              accept: () => {
+                this.router.navigate(['/dashboard/download']);
+              },
+            });
+          }
+        },
+
+        error: (err: HttpErrorResponse) => {
+          let detailMessage = 'error message';
+          if (err.status === 0) {
+            detailMessage = 'Network error. Please check your connection.';
+          } else if (err.error?.message) {
+            detailMessage = err.error.message;
+          }
+
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Failed',
+            detail: detailMessage,
+          });
+        },
+      })
+      .add(() => {
+        this.isLoading = false;
+        this.currentDownloadFormat = null;
+      });
+  }
+
+
+  openDownloadDialog(format: DownloadFormat) {
+    this.currentDownloadFormat = format;
+    this.showDownloadJobDialog = true;
+
+    this.jobNameCtrl.reset();
+  }
+
 }

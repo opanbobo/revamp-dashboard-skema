@@ -65,7 +65,7 @@ export class TopMediaComponent implements OnInit {
     this.filter = this.filterService.subscribe((filter) => {
       this.isLoading = true;
       this.toneService
-        .getToneByMedia(filter)
+        .getToneByMedia({...filter, maxSize: 10})
         .subscribe((data) => {
           this.chartsData = this.parseToChartData(data.data);
         })

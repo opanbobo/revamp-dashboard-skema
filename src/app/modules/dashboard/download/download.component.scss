@@ -1,0 +1,29 @@
+:host ::ng-deep {
+  .card {
+    padding: 1.25rem;
+  }
+
+  .p-table th {
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .p-table td {
+    font-size: 0.875rem;
+  }
+
+  .p-paginator {
+    margin-top: 1rem;
+  }
+}
+
+.custom-error-tooltip {
+  max-width: 400px;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  white-space: normal;
+  word-break: break-word;
+  padding: 0.5rem;
+  color: whitesmoke;
+}
+

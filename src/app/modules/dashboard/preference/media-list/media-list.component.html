@@ -117,6 +117,15 @@
                   [text]="true"
                   size="small"
                   styleClass="p-2 border-1 border-200 bg-white"
+                  title="Berita Online (IND)"
+                  (onClick)="openEditModal(media, 'online-ind')">
+                  <i class="pi pi-desktop text-color"></i>
+                </p-button>
+                <p-button
+                  [outlined]="true"
+                  [text]="true"
+                  size="small"
+                  styleClass="p-2 border-1 border-200 bg-white"
                   (onClick)="deleteMedia(media)">
                   <i class="pi pi-trash text-red-500"></i>
                 </p-button>
@@ -199,8 +208,6 @@
       [filterInputAutoFocus]="true"
       [metaKeySelection]="false"
       [containerStyle]="{ backgroundColor: 'var(--bg-color)' }"
-      (onNodeSelect)="onNodeSelect($event)"
-      (onNodeUnselect)="onNodeUnselect($event)"
       [virtualScroll]="true"
       [virtualScrollItemSize]="50"
       [virtualScrollOptions]="{ scrollHeight: '300px', appendOnly: true }">

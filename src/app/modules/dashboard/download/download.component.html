@@ -1,0 +1,166 @@
+<section>
+    <p-toast></p-toast>
+
+    <!-- Header -->
+    <div class="flex align-items-center gap-2 mb-4">
+        <icon-newspaper fill="var(--primary-color)"></icon-newspaper>
+        <div class="text-sm font-semibold">Downloads</div>
+        <icon-info></icon-info>
+    </div>
+
+    <p-divider></p-divider>
+
+    <div>
+        <!-- Toolbar -->
+        <div class="flex justify-content-between align-items-end my-2 px-5">
+            <div class="text-sm">
+                {{ isLoading ? 'Loading...' : (downloads.length + ' of ' + totalRecords + ' downloads') }}
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div>
+            <div class="card">
+                <p-table [value]="downloads" dataKey="id" [loading]="isLoading" [tableStyle]="{ 'min-width': '50rem' }">
+
+                    <!-- Header -->
+                    <ng-template pTemplate="header">
+                        <tr class="text-sm font-medium">
+                            <th style="width: 50px">No</th>
+                            <th>Name</th>
+                            <th style="width: 100px">Status</th>
+                            <th style="width: 120px">Progress</th>
+                            <th style="width: 150px">Created At</th>
+                            <th style="width: 150px">Updated At</th>
+                            <th style="width: 80px" class="text-center">Actions</th>
+                        </tr>
+                    </ng-template>
+
+                    <!-- Body -->
+                    <ng-template pTemplate="body" let-download let-i="rowIndex">
+                        <tr class="text-sm">
+                            <td>{{ first + i + 1 }}</td>
+
+                            <td>
+                                <div class="flex flex-column">
+                                    <span class="font-medium">{{ download.name }}</span>
+                                    <small class="text-color-secondary">
+                                        {{ download.total_items }} items • {{ download.processed_items }} processed
+                                    </small>
+                                </div>
+                            </td>
+
+                            <td>
+                                <div class="flex align-items-center gap-2">
+                                    <ng-template #errorTooltip>
+                                        <div class="custom-error-tooltip">
+                                            {{ download.error_message }}
+                                        </div>
+                                    </ng-template>
+
+                                    <p-tag [value]="download.status" [severity]="getStatusSeverity(download.status)"
+                                        [pTooltip]="download.status === 'FAILED' ? errorTooltip : undefined"
+                                        tooltipPosition="top" [tooltipDisabled]="download.status !== 'FAILED'">
+                                    </p-tag>
+
+                                </div>
+                            </td>
+
+                            <td>
+                                <div class="flex flex-column gap-1">
+                                    <p-progressBar [value]="download.progress_percentage" [showValue]="false">
+                                    </p-progressBar>
+                                    <small>{{ download.progress_percentage }}%</small>
+                                </div>
+                            </td>
+
+                            <td>{{ formatDateTime(download.created_at) }}</td>
+                            <td>{{ formatDateTime(download.updated_at) }}</td>
+
+                            <td class="text-center">
+                                <div class="flex justify-content-center gap-2">
+
+                                    <!-- Download -->
+                                    <p-button icon="pi pi-download" severity="success" [text]="true" [outlined]="true"
+                                        size="small" [disabled]="download.status !== 'SUCCESS'"
+                                        (click)="downloadFile(download)">
+                                    </p-button>
+
+
+                                    <!-- Retry -->
+                                    <p-button *ngIf="download.status === 'FAILED'" icon="pi pi-refresh" [text]="true"
+                                        [outlined]="true" size="small" pTooltip="Retry"
+                                        (click)="openRetryDialog(download)">
+                                    </p-button>
+
+                                    <!-- Delete -->
+                                    <p-button icon="pi pi-trash" severity="danger" [text]="true" [outlined]="true"
+                                        size="small" pTooltip="Delete" (click)="openDeleteDialog(download)">
+                                    </p-button>
+                                </div>
+                            </td>
+                        </tr>
+                    </ng-template>
+
+                    <!-- Empty -->
+                    <ng-template pTemplate="emptymessage">
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <div class="flex flex-column align-items-center gap-2">
+                                    <i class="pi pi-inbox" style="font-size: 3rem; color: var(--surface-400)"></i>
+                                    <p class="text-color-secondary">No downloads found</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+
+                <!-- Pagination -->
+                <p-paginator *ngIf="totalRecords > 0" (onPageChange)="onPageChange($event)" [first]="first"
+                    [rows]="rows" [totalRecords]="totalRecords" [showFirstLastIcon]="true"
+                    [rowsPerPageOptions]="[10, 20, 50, 100]" styleClass="mt-3">
+                </p-paginator>
+            </div>
+        </div>
+    </div>
+</section>
+
+<p-dialog header="Retry Download" [(visible)]="retryDialogOpen" [modal]="true" [style]="{ width: '26rem' }"
+    [breakpoints]="{ '575px': '90vw' }">
+
+    <div class="pt-2 text-sm text-color-secondary">
+        Are you sure you want to retry this download job?
+    </div>
+
+    <ng-template pTemplate="footer">
+        <div class="pt-3 flex justify-end gap-2">
+            <p-button label="Cancel" [outlined]="true" (click)="closeRetryDialog()">
+            </p-button>
+
+            <p-button label="Retry" severity="info" [loading]="isRetrying" (click)="confirmRetryDownload()">
+            </p-button>
+        </div>
+    </ng-template>
+</p-dialog>
+
+<p-dialog header="Delete Download" [(visible)]="deleteDialogOpen" [modal]="true" [style]="{ width: '40rem' }"
+    [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }">
+
+    <p-header class="font-bold text-base">
+        Delete Download
+    </p-header>
+
+    <div class="pt-3 text-sm text-color-secondary">
+        This action cannot be undone. Are you sure you want to delete this download?
+    </div>
+
+    <ng-template pTemplate="footer">
+        <div class="pt-4 flex justify-end gap-2">
+            <p-button label="Cancel" [outlined]="true" (click)="closeDeleteDialog()">
+            </p-button>
+
+            <p-button label="Delete" severity="danger" [loading]="isDeleting" (click)="confirmDeleteDownload()">
+            </p-button>
+        </div>
+    </ng-template>
+</p-dialog>

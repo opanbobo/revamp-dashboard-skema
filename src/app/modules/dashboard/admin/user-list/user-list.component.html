@@ -3,7 +3,8 @@
     <div class="card">
         <div class="flex justify-content-start align-items-center gap-3 mb-3">
             <span class="p-input-icon-right">
-                <input type="text" pInputText placeholder="Search" class="p-inputtext-sm max-w-17rem" [formControl]="searchForm.controls['query']"/>
+                <input type="text" pInputText placeholder="Search" class="p-inputtext-sm max-w-17rem"
+                    [formControl]="searchForm.controls['query']" />
                 <i class="pi pi-search"></i>
             </span>
             <p-button severity="secondary" [plain]="true" iconPos="left" styleClass="border-0"
@@ -154,7 +155,7 @@
                 <div class="col-6">
                     <div class="flex flex-column gap-2">
                         <label class="font-semibold" for="level_menu">User Level</label>
-                        <p-dropdown formControlName="level_menu" [options]="userLevels" styleClass="w-full"
+                        <p-dropdown formControlName="level_menu" appendTo="body" [options]="userLevels" styleClass="w-full"
                             class="text-xs" optionLabel="level_name" optionValue="id" [filter]="true"
                             filterBy="level_name" [showClear]="true" placeholder="Select User level">
                         </p-dropdown>
@@ -174,7 +175,7 @@
                     </div>
                 </div>
             </div>
-            <div class="flex flex-column gap-2">
+            <div *ngIf="addValues.get('level_menu')?.value === customLevelId" class="flex flex-column gap-2">
                 <label class="font-semibold" for="menu">Access Menu</label>
                 <p-multiSelect [options]="accessMenus" formControlName="menu" placeholder="Access Menu"
                     styleClass="text-xs w-full">
