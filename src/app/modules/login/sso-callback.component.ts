@@ -41,12 +41,13 @@ export class SsoCallbackComponent {
     const refereshToken = this.keycloakService.getKeycloakInstance().refreshToken;
     const accessToken = this.keycloakService.getKeycloakInstance().token;
     const accessToken2 = this.keycloakService.getToken();
+    const idToken = this.keycloakService.getKeycloakInstance().idToken;
 
     console.log('accesstoken', accessToken);
     console.log('accesstoken2', accessToken2);
     console.log('refereshtoken', refereshToken);
 
-    this.authService.userDetailFromToken(accessToken!, refereshToken!).subscribe({
+    this.authService.userDetailFromToken(accessToken!, refereshToken!, idToken!).subscribe({
       next: (user) => {
         console.log('user', user);
 
@@ -91,7 +92,8 @@ export class SsoCallbackComponent {
       await this.oauthService.loadDiscoveryDocumentAndTryLogin(); // Combines discovery & code flow
 
       const accessToken = this.oauthService.getAccessToken();
-      const refreshToken = this.oauthService.getRefreshToken(); // Might be null depending on server config
+      const refreshToken = this.oauthService.getRefreshToken();
+      const idToken = this.oauthService.getIdToken(); 
 
       // console.log('✅ Access Token:', accessToken);
       // console.log('🪪 ID Token:', this.oauthService.getIdToken());
@@ -104,7 +106,7 @@ export class SsoCallbackComponent {
         return;
       }
 
-      this.authService.userDetailFromToken(accessToken!, refreshToken!).subscribe({
+      this.authService.userDetailFromToken(accessToken!, refreshToken!, idToken!).subscribe({
         next: (user) => {
           console.log('user', user);
 

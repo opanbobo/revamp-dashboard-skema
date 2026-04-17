@@ -9,6 +9,7 @@ import { Store } from '@ngrx/store';
 import { AppState } from '../store';
 import { OAuthService } from 'angular-oauth2-oidc';
 import { USER_KEY } from '../../shared/utils/AuthUtils';
+import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root',
@@ -19,7 +20,8 @@ export class AuthService {
     private http: HttpClient,
     private keycloakService: KeycloakService,
     private store: Store<AppState>,
-    private oauthService: OAuthService
+    private oauthService: OAuthService,
+    private router: Router
   ) { }
 
   login(username: string, password: string): Observable<User> {
@@ -29,7 +31,9 @@ export class AuthService {
     });
   }
 
-  userDetailFromToken(accessToken: string, refreshToken: string): Observable<User> {
+  userDetailFromToken(accessToken: string, refreshToken: string, idToken: string): Observable<User> {
+
+    console.log('id token : ', idToken);
 
     const requestBody = {
       username: '',
@@ -38,23 +42,44 @@ export class AuthService {
       provider: 'bpk',
       access_token: accessToken,
       refresh_token: refreshToken,
+      id_token: idToken
     };
 
     return this.http.post<User>(`${this.baseUrl}/v1/login/`, requestBody);
   }
 
   logout(): void {
-    this.store.dispatch(AuthActions.logout());
+    const token = localStorage.getItem(USER_KEY);
 
-    window.localStorage.removeItem(USER_KEY);
+    // Call backend logout API
+    this.http.post<any>(`${this.baseUrl}/v1/logout/`, {}).subscribe({
+      next: (res) => {
+        console.log('Logout API success', res);
 
-    if (this.oauthService.hasValidAccessToken()) {
-      this.oauthService.logOut();
-      localStorage.clear();
-      sessionStorage.clear();
-      return;
-    }
+        // Clear state first
+        this.store.dispatch(AuthActions.logout());
+        localStorage.removeItem(USER_KEY);
+        sessionStorage.clear();
 
-    this.keycloakService.logout(window.location.origin);
+        // Redirect to backend-provided URL
+        if (res?.redirect_url) {
+          window.location.href = res.redirect_url;
+          return;
+        }
+
+        // fallback
+        this.router.navigateByUrl('/login');
+      },
+      error: (err) => {
+        console.error('Logout API failed', err);
+
+        // Fallback logout (important!)
+        this.store.dispatch(AuthActions.logout());
+        localStorage.removeItem(USER_KEY);
+        sessionStorage.clear();
+
+        this.router.navigateByUrl('/login');
+      }
+    });
   }
 }
