@@ -6,7 +6,7 @@ import { fromEvent, merge, Subscription, timer } from 'rxjs';
 })
 export class IdleService implements OnDestroy {
 
-  private timeout = 60 * 60 * 1000;
+  private timeout = 1 * 60 * 1000;
   private activitySubscription!: Subscription;
   private timerSubscription!: Subscription;
 
