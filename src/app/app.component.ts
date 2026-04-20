@@ -8,6 +8,7 @@ import { IdleService } from './core/services/idle.service';
 import { AppState } from './core/store';
 import { selectAuthState } from './core/store/auth/auth.selectors';
 import * as AuthActions from './core/store/auth/auth.actions';
+import { AuthService } from './core/services/auth.service';
 
 @Component({
   selector: 'app-root',
@@ -23,7 +24,8 @@ export class AppComponent implements OnInit, OnDestroy {
   constructor(
     private idleService: IdleService,
     private store: Store<AppState>,
-    private router: Router
+    private router: Router,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -43,13 +45,7 @@ export class AppComponent implements OnInit, OnDestroy {
   handleIdleLogout(): void {
     console.log('Auto logout (UP-login) due to inactivity');
 
-    this.idleService.stopWatching();
-
-    this.store.dispatch(AuthActions.logout());
-    localStorage.removeItem('USER_KEY');
-    sessionStorage.clear();
-
-    this.router.navigateByUrl('/login');
+    this.authService.logout();
   }
 
   ngOnDestroy(): void {

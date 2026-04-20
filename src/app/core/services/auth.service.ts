@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { finalize, Observable, of } from 'rxjs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { User } from '../models/user.model';
 import { BASE_URL } from '../api';
 import { KeycloakService } from 'keycloak-angular';
@@ -45,13 +45,38 @@ export class AuthService {
     return this.http.post<User>(`${this.baseUrl}/v1/login/`, requestBody);
   }
 
+  // logout(): void {
+  //   this.store.dispatch(AuthActions.logout());
+
+  //   // remove only auth-related data
+  //   localStorage.removeItem(USER_KEY);
+  //   sessionStorage.clear();
+
+  //   this.router.navigateByUrl('/login');
+  // }
+
   logout(): void {
-    this.store.dispatch(AuthActions.logout());
+    const userData = localStorage.getItem(USER_KEY);
+    const token = userData ? JSON.parse(userData)?.token : null;
 
-    // remove only auth-related data
-    localStorage.removeItem(USER_KEY);
-    sessionStorage.clear();
+    const headers = new HttpHeaders(
+      token ? { Authorization: `Token ${token}` } : {}
+    );
 
-    this.router.navigateByUrl('/login');
+    this.http.post(`${this.baseUrl}/v1/logout/`, {}, { headers }).pipe(
+      finalize(() => {
+        this.store.dispatch(AuthActions.logout());
+        localStorage.removeItem(USER_KEY);
+        sessionStorage.clear();
+
+        if (this.oauthService.hasValidAccessToken()) {
+          this.oauthService.logOut();
+          localStorage.clear();
+          return;
+        }
+
+        this.router.navigateByUrl('/login');
+      })
+    ).subscribe();
   }
 }
