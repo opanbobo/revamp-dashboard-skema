@@ -191,17 +191,6 @@ export class DashboardComponent implements OnInit {
           console.log('Logout clicked');
 
           this.authService.logout();
-
-          // this.store.dispatch(AuthActions.logout());
-
-          // window.localStorage.removeItem(USER_KEY);
-          // if (this.oauthService.hasValidAccessToken()) {
-          //   this.oauthService.logOut();
-          //   localStorage.clear();
-          //   sessionStorage.clear();
-          //   return;
-          // }
-          // this.router.navigateByUrl('login');
         },
       },
     ];

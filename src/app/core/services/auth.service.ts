@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
+import { finalize, Observable, of } from 'rxjs';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { User } from '../models/user.model';
 import { BASE_URL } from '../api';
 import { KeycloakService } from 'keycloak-angular';
@@ -49,37 +49,27 @@ export class AuthService {
   }
 
   logout(): void {
-    const token = localStorage.getItem(USER_KEY);
+    const userData = localStorage.getItem(USER_KEY);
+    const token = userData ? JSON.parse(userData)?.token : null;
 
-    // Call backend logout API
-    this.http.post<any>(`${this.baseUrl}/v1/logout/`, {}).subscribe({
-      next: (res) => {
-        console.log('Logout API success', res);
+    const headers = new HttpHeaders(
+      token ? { Authorization: `Token ${token}` } : {}
+    );
 
-        // Clear state first
+    this.http.post(`${this.baseUrl}/v1/logout/`, {}, { headers }).pipe(
+      finalize(() => {
         this.store.dispatch(AuthActions.logout());
         localStorage.removeItem(USER_KEY);
         sessionStorage.clear();
 
-        // Redirect to backend-provided URL
-        if (res?.redirect_url) {
-          window.location.href = res.redirect_url;
+        if (this.oauthService.hasValidAccessToken()) {
+          this.oauthService.logOut();
+          localStorage.clear();
           return;
         }
 
-        // fallback
         this.router.navigateByUrl('/login');
-      },
-      error: (err) => {
-        console.error('Logout API failed', err);
-
-        // Fallback logout (important!)
-        this.store.dispatch(AuthActions.logout());
-        localStorage.removeItem(USER_KEY);
-        sessionStorage.clear();
-
-        this.router.navigateByUrl('/login');
-      }
-    });
+      })
+    ).subscribe();
   }
 }
