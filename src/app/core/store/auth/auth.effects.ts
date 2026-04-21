@@ -21,14 +21,24 @@ export class AuthEffects {
       switchMap(({ username, password }) =>
         this.authService.login(username, password).pipe(
           map((response) => {
-            if ((response as any).code === 401) {
-              throw new Error((response as any).message);
-            }
+            console.log('login success:', response);
             return AuthActions.loginSuccess({ user: response });
           }),
-          catchError((error) =>
-            of(AuthActions.loginFailure({ error: error.message }))
-          )
+          catchError((error) => {
+            console.error('Login failed message:', error.error);
+
+            let errorMessage = 'Unknown error';
+
+            if (error?.error?.message) {
+              errorMessage = error.error.message;
+            } else if (error?.message) {
+              errorMessage = error.message;
+            }
+
+            return of(
+              AuthActions.loginFailure({ error: errorMessage })
+            );
+          })
         )
       )
     )
