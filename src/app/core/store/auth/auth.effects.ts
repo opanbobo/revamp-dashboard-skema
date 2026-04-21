@@ -13,26 +13,36 @@ export class AuthEffects {
     private actions$: Actions,
     private authService: AuthService,
     private router: Router
-  ) {}
+  ) { }
 
   login = createEffect(() =>
-    this.actions$.pipe(
-      ofType(AuthActions.login),
-      switchMap(({ username, password }) =>
-        this.authService.login(username, password).pipe(
-          map((response) => {
-            if ((response as any).code === 401) {
-              throw new Error((response as any).message);
-            }
-            return AuthActions.loginSuccess({ user: response });
-          }),
-          catchError((error) =>
-            of(AuthActions.loginFailure({ error: error.message }))
-          )
-        )
+  this.actions$.pipe(
+    ofType(AuthActions.login),
+    switchMap(({ username, password }) =>
+      this.authService.login(username, password).pipe(
+        map((response) => {
+          console.log('login success:', response);
+          return AuthActions.loginSuccess({ user: response });
+        }),
+        catchError((error) => {
+          console.error('Login failed message:', error.error);
+
+          let errorMessage = 'Unknown error';
+
+          if (error?.error?.message) {
+            errorMessage = error.error.message;
+          } else if (error?.message) {
+            errorMessage = error.message;
+          }
+
+          return of(
+            AuthActions.loginFailure({ error: errorMessage })
+          );
+        })
       )
     )
-  );
+  )
+);
 
   loginSuccess = createEffect(
     () =>
