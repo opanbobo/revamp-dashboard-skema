@@ -207,7 +207,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
       // Clear custom offset data
       tooltipElement.dataset['customX'] = '0';
       tooltipElement.dataset['customY'] = '0';
-      
+
       // Remove any custom transform
       tooltipElement.style.transform = data.originalTransform || '';
     });
@@ -236,11 +236,11 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     if (e.altKey && !this.tooltipDragKeyPressed) {
       this.tooltipDragKeyPressed = true;
       document.body.style.cursor = 'move';
-      
+
       if (this.map) {
         this.map.dragging.disable();
       }
-      
+
       this.updateTooltipDragState(true);
     }
   }
@@ -249,21 +249,21 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     if (!e.altKey && this.tooltipDragKeyPressed) {
       this.tooltipDragKeyPressed = false;
       document.body.style.cursor = '';
-      
+
       if (this.map) {
         this.map.dragging.enable();
       }
-      
+
       this.updateTooltipDragState(false);
     }
   }
 
   private updateTooltipDragState(enabled: boolean): void {
     const tooltips = document.querySelectorAll('.draggable-tooltip');
-    
+
     tooltips.forEach(tooltipElement => {
       const htmlElement = tooltipElement as HTMLElement;
-      
+
       if (enabled) {
         htmlElement.classList.add('drag-enabled');
       } else {
@@ -287,23 +287,23 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
         }
 
         const tooltipElement = tooltip._container as HTMLElement;
-        
+
         // Check if already setup to avoid duplicates
         if (this.tooltipDataMap.has(tooltipElement)) {
           console.log(`Tooltip already setup for: ${name}, skipping`);
           return;
         }
-        
+
         console.log(`Setting up tooltip for: ${name} (${isCity ? 'city' : 'province'})`);
-        
+
         // Store the ORIGINAL Leaflet transform
         const originalTransform = tooltipElement.style.transform || '';
-        
+
         // Store reference for later use
-        this.tooltipDataMap.set(tooltipElement, { 
-          layer, 
-          name, 
-          originalTransform 
+        this.tooltipDataMap.set(tooltipElement, {
+          layer,
+          name,
+          originalTransform
         });
 
         // Store name in dataset for easy retrieval
@@ -328,7 +328,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
 
         // Set up reposition listener for zoom/pan
         this.setupTooltipRepositionListener(layer, tooltipElement, name);
-        
+
         console.log(`✓ Tooltip dragging setup complete for: ${name}`);
       } catch (error) {
         console.error(`Error setting up tooltip for ${name}:`, error);
@@ -339,7 +339,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
   private applyInitialOffset(tooltipElement: HTMLElement, name: string, isCity: boolean = false): void {
     // Create a deterministic but varied offset based on name
     const hash = this.hashCode(name);
-    
+
     // Different offsets for cities vs provinces to avoid overlap
     const baseOffset = isCity ? 30 : 20;
     const offsetX = (hash % baseOffset) - (baseOffset / 2);
@@ -365,7 +365,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     // Get the ORIGINAL Leaflet transform
     const tooltipData = this.tooltipDataMap.get(tooltipElement);
     const originalTransform = tooltipData?.originalTransform || tooltipElement.style.transform;
-    
+
     if (!originalTransform) {
       // If no transform exists, create a new one
       tooltipElement.style.transform = `translate(${customX}px, ${customY}px)`;
@@ -374,13 +374,13 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Parse the existing transform
     const translateMatch = originalTransform.match(/translate3d\(([^,]+),\s*([^,]+),\s*([^)]+)\)/);
-    
+
     if (translateMatch) {
       // Apply custom offset on top of Leaflet's transform
       const baseX = parseFloat(translateMatch[1]);
       const baseY = parseFloat(translateMatch[2]);
       const z = translateMatch[3];
-      
+
       tooltipElement.style.transform = `translate3d(${baseX + customX}px, ${baseY + customY}px, ${z})`;
     } else {
       // Try to match translate2d
@@ -412,12 +412,12 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
       isDragging = true;
       startX = e.clientX;
       startY = e.clientY;
-      
+
       initialCustomX = parseFloat(tooltipElement.dataset['customX'] || '0');
       initialCustomY = parseFloat(tooltipElement.dataset['customY'] || '0');
 
       tooltipElement.classList.add('dragging');
-      
+
       document.addEventListener('mousemove', onMouseMove);
       document.addEventListener('mouseup', onMouseUp);
     };
@@ -524,9 +524,9 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   addLegendControl = (): void => {
     if (!this.map) return;
-    
+
     const legendControl = control.layers(undefined, undefined, { position: 'bottomright' });
-    
+
     legendControl.onAdd = () => {
       const legendContainer = DomUtil.create('div', 'legend');
       const legendContent = `
@@ -542,7 +542,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
       legendContainer.innerHTML = legendContent;
       return legendContainer;
     };
-    
+
     legendControl.addTo(this.map);
   };
 
@@ -561,10 +561,10 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
       return data.data.find((prov) => prov.key.toUpperCase() === provinceKey.toUpperCase());
     };
 
-    this.mapService.getGeoJsonDataProv().subscribe((data) => {
+    this.mapService.getGeoJsonDataProv().subscribe((geoJsonData) => {
       if (!this.map) return;
-      
-      this.geoJsonLayer = geoJSON(data, {
+
+      this.geoJsonLayer = geoJSON(geoJsonData, {
         onEachFeature: (feature, layer) => {
           const featureName = feature.properties.WADMPR.toUpperCase();
           const featureData = getDataByLocation(featureName);
@@ -592,25 +592,27 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
                 e.originalEvent.stopPropagation();
                 return;
               }
-              
+
               const clickedFeatureName = e.target.feature.properties.WADMPR.toUpperCase();
               this.removeProvinceLayer(clickedFeatureName);
 
               const hoveredLayer = e.target;
               const clickedFeatureData = getDataByLocation(clickedFeatureName);
               this.map?.fitBounds(e.target.getBounds());
-              
+
+              console.log(`Clicked province: ${clickedFeatureName}, value: ${clickedFeatureData?.value ?? 0}`);
+
               hoveredLayer.setStyle({
-                fillColor: this.getMapColor(clickedFeatureData?.value ?? 0),
+                fillColor: this.getMapColor(clickedFeatureData?.value ?? 0, data.data), // Use data.data from parent scope
                 fillOpacity: 1,
               });
-              
+
               this.addCitiesLayer(clickedFeatureName);
             },
             mouseover: (e) => {
-              e.target.setStyle({ 
-                fillColor: isDarkMode() ? '#f1f4fa' : '#111827', 
-                fillOpacity: 1 
+              e.target.setStyle({
+                fillColor: isDarkMode() ? '#f1f4fa' : '#111827',
+                fillOpacity: 1
               });
             },
             mouseout: (e) => {
@@ -618,7 +620,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
               const featureData = getDataByLocation(featureName);
 
               hoveredLayer.setStyle({
-                fillColor: this.getMapColor(featureData?.value ?? 0),
+                fillColor: this.getMapColor(featureData?.value ?? 0, data.data), // Pass data.data
                 fillOpacity: 1,
               });
             },
@@ -629,7 +631,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
           const featureData = getDataByLocation(featureName);
 
           return {
-            fillColor: this.getMapColor(featureData?.value ?? 0),
+            fillColor: this.getMapColor(featureData?.value ?? 0, data.data), // Pass data.data
             fillOpacity: 1,
             color: isDarkMode() ? '#19182b' : '#f1f4fa',
             weight: 1,
@@ -699,7 +701,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
                   e.originalEvent.stopPropagation();
                   return;
                 }
-                
+
                 const clickedFeatureName = e.target.feature.properties.WADMKK;
                 this.map?.fitBounds(e.target.getBounds());
                 this.removeProvinceLayer(clickedFeatureName);
@@ -707,9 +709,9 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
               },
               mouseover: (e) => {
                 if (!this.tooltipDragKeyPressed) {
-                  e.target.setStyle({ 
-                    fillColor: isDarkMode() ? '#f1f4fa' : '#111827', 
-                    fillOpacity: 1 
+                  e.target.setStyle({
+                    fillColor: isDarkMode() ? '#f1f4fa' : '#111827',
+                    fillOpacity: 1
                   });
                 }
               },
@@ -719,7 +721,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
                   const featureData = getDataByLocation(cityName);
 
                   hoveredLayer.setStyle({
-                    fillColor: this.getMapColor(featureData?.value ?? 0),
+                    fillColor: this.getMapColor(featureData?.value ?? 0, data.data), // Pass data.data
                     fillOpacity: 1,
                   });
                 }
@@ -734,7 +736,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
             const featureData = getDataByLocation(cityName);
 
             return {
-              fillColor: this.getMapColor(featureData?.value ?? 0),
+              fillColor: this.getMapColor(featureData?.value ?? 0, data.data), // Pass data.data
               fillOpacity: 1,
               color: isDarkMode() ? '#19182b' : '#f1f4fa',
               weight: 1,
@@ -743,7 +745,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
         });
 
         this.citiesLayersByProvince = provinceGroups;
-        
+
         // Process city tooltip setup queue
         setTimeout(() => {
           this.processCityTooltipQueue();
@@ -761,13 +763,13 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   private processCityTooltipQueue(): void {
     console.log(`Processing ${this.cityLayerSetupQueue.length} city tooltips in queue`);
-    
+
     this.cityLayerSetupQueue.forEach((item, index) => {
       setTimeout(() => {
         this.setupTooltipDragging(item.layer, item.name, true);
       }, index * 50); // Stagger setup to avoid performance issues
     });
-    
+
     this.cityLayerSetupQueue = [];
   }
 
@@ -775,33 +777,43 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
   // MAP STYLING
   // ============================================================================
 
-  getLevel(num: number, min: number, max: number): number {
-    if (num === 0) return 5;
+  getLevel(num: number, min: number, max: number, maxLevel: number = 10): number {
+    if (num === 0) return maxLevel; // zero value → lightest color
+    if (max === min) return 1;
 
     const range = max - min;
-    const levelRange = range / 4;
+    const levelRange = range / maxLevel;
 
-    if (num <= min + levelRange) return 4;
-    else if (num <= min + 2 * levelRange) return 3;
-    else if (num <= min + 3 * levelRange) return 2;
-    return 1;
+    for (let i = 1; i <= maxLevel; i++) {
+      if (num <= min + i * levelRange) return maxLevel - i + 1;
+    }
+
+    return 1; // fallback for max value
   }
 
-  getMapColor(value: number): string {
+  getMapColor(value: number, allData: { key: string; value: number }[]): string {
     const colorGroup: { [x: number]: string } = {
-      1: '#04351d',
-      2: '#074727',
-      3: '#0c643a',
-      4: '#2e8d58',
-      5: '#6ab277',
+      1: '#04351d', // darkest - for highest values
+      2: '#0d4f24',
+      3: '#1a6433',
+      4: '#2a7a44',
+      5: '#3a8f57',
+      6: '#4da36c',
+      7: '#61b681',
+      8: '#77c996',
+      9: '#8fdbac',
+      10: '#a8edc2', // lightest - for lowest values
     };
 
-    const min = Math.min(...this.mapLocationData.map((v) => v.value));
-    const max = Math.max(...this.mapLocationData.map((v) => v.value));
+    // Calculate min/max from the actual data being passed
+    const allValues = allData.map(d => d.value);
+    const min = Math.min(...allValues);
+    const max = Math.max(...allValues);
+
     const level = this.getLevel(value, min, max);
+
     return colorGroup[level];
   }
-
   // ============================================================================
   // MAP LIFECYCLE
   // ============================================================================
@@ -833,7 +845,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   addCitiesLayer = (province: string): void => {
     console.log(`Adding cities layer for province: ${province}`);
-    
+
     if (this.selectedLayerProv) {
       this.selectedGroupCities?.removeFrom(this.map!);
       this.selectedLayerProv.addTo(this.map!);
@@ -847,7 +859,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     const cityLayerGroup = this.citiesLayersByProvince.get(province);
     if (cityLayerGroup) {
       cityLayerGroup.addTo(this.map!);
-      
+
       // Set up tooltip dragging for city layers that are now visible
       setTimeout(() => {
         cityLayerGroup.eachLayer((layer: any) => {
@@ -902,7 +914,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.selectedGroupCities = null;
     this.selectedLayerProv = null;
-    
+
     // Clear tooltip data map
     this.tooltipDataMap.clear();
     this.cityLayerSetupQueue = [];
