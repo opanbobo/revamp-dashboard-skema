@@ -1,16 +1,28 @@
 <header>
   <p-toolbar styleClass="flex-nowrap">
     <ng-template pTemplate="start">
-      <img *ngIf="user?.usr_comp_name !== 'PETIQ Enterprise'" src="../../../assets/skema-logo.png" height="20" class="mr-2" />
-      <p-divider *ngIf="user?.comp_icon && user?.usr_comp_name !== 'PETIQ Enterprise'" layout="vertical" class="logo-divider"></p-divider>
-      <img *ngIf="user?.comp_icon" [src]="'https://api.skema.co.id/media/' + user?.comp_icon" height="45" class="mr-2 cursor-pointer" (click)="goToHome()"/>
+      <!-- Default logo -->
+      <img *ngIf="user?.usr_comp_name !== 'PETIQ Enterprise' && user?.usr_comp_name !== 'Kementerian Hukum'"
+        src="../../../assets/skema-logo.png" height="20" class="mr-2" />
+
+      <!-- Special logo for Kementerian Hukum -->
+      <img *ngIf="user?.usr_comp_name === 'Kementerian Hukum'" src="../../../assets/imogen.jpeg" height="30"
+        class="mr-2" />
+
+      <p-divider *ngIf="user?.comp_icon && user?.usr_comp_name !== 'PETIQ Enterprise'" layout="vertical"
+        class="logo-divider">
+      </p-divider>
+
+      <img *ngIf="user?.comp_icon" [src]="'https://api.skema.co.id/media/' + user?.comp_icon" height="45"
+        class="mr-2 cursor-pointer" (click)="goToHome()" />
     </ng-template>
     <ng-template pTemplate="center">
       <p-tabMenu class="nav" [model]="navItems" [ngClass]="{'full-width': isAdminMenuPresent}">
         <ng-template pTemplate="item" let-item>
           <a [routerLink]="item.routerLink" class="p-menuitem-link flex justify-content-between align-items-center">
             <div class="flex align-items-center gap-2">
-              <svg-icon [src]="item.icon" [svgClass]="currentRoute === item.routerLink ? 'fill-primary' : 'fill-secondary'"></svg-icon>
+              <svg-icon [src]="item.icon"
+                [svgClass]="currentRoute === item.routerLink ? 'fill-primary' : 'fill-secondary'"></svg-icon>
 
               <div class="text-xs font-medium text-color white-space-nowrap">
                 {{ item.label }}
@@ -50,11 +62,11 @@
     </ng-template>
   </p-breadcrumb>
   <div class="pt-2 pb-4 flex flex-wrap xl:flex-nowrap xl:gap-5">
-    <aside [hidden]="!showFilter" class="w-full md:w-full lg:w-full xl:w-2 xl:min-w-2 mb-4" style="min-width: 16.66667%">
+    <aside [hidden]="!showFilter" class="w-full md:w-full lg:w-full xl:w-2 xl:min-w-2 mb-4"
+      style="min-width: 16.66667%">
       <app-filter></app-filter>
     </aside>
-    <section
-      [ngClass]="{
+    <section [ngClass]="{
         'w-full md:w-full lg:w-full xl:w-10 xl:max-w-10 overflow-hidden': showFilter,
         'w-full': !showFilter,
       }">
