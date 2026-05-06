@@ -13,7 +13,7 @@ export class AuthEffects {
     private actions$: Actions,
     private authService: AuthService,
     private router: Router
-  ) { }
+  ) {}
 
   login = createEffect(() =>
     this.actions$.pipe(
@@ -42,8 +42,7 @@ export class AuthEffects {
         )
       )
     )
-  )
-);
+  );
 
   loginSuccess = createEffect(
     () =>
