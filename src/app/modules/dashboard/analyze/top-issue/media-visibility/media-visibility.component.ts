@@ -380,6 +380,14 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
       plugins: {
         legend: {
           position: 'top'
+        },
+
+        tooltip: {
+          callbacks: {
+            label: function (context: any) {
+              return `${context.dataset.label}: ${context.raw}%`;
+            }
+          }
         }
       },
 
@@ -477,10 +485,14 @@ export class MediaVisibilityComponent implements OnInit, OnDestroy {
 
       const total = positive + neutral + negative;
 
-      positiveData.push((positive / total) * 100);
-      neutralData.push((neutral / total) * 100);
-      negativeData.push((negative / total) * 100);
+      positiveData.push(Number(((positive / total) * 100).toFixed(2)));
+      neutralData.push(Number(((neutral / total) * 100).toFixed(2)));
+      negativeData.push(Number(((negative / total) * 100).toFixed(2)));
     });
+
+    console.log('Positive data:', positiveData);
+    console.log('Neutral data:', neutralData);
+    console.log('Negative data:', negativeData);
 
     const sentimentBarData = {
       labels: mediaVisibility.map(v => v.key),
