@@ -19,14 +19,37 @@
     </div>
   </div>
 
-  <spinner [spinning]="this.isLoadingArticles">
-    <div class="w-full h-30rem overflow-hidden">
+  <spinner [spinning]="this.isLoadingArticles || this.isLoadingCities">
+    <div class="map-shell w-full h-30rem overflow-hidden">
       <div
         class="h-full"
         style="background-color: var(--bg-color)"
         leaflet
         (leafletMapReady)="onMapReady($event)"
         [leafletOptions]="options"></div>
+
+      <div
+        *ngIf="!isSentimentMode && tonePieData && toneChartPosition"
+        class="tone-chart-overlay"
+        [style.left.px]="toneChartPosition.left"
+        [style.top.px]="toneChartPosition.top"
+        (click)="$event.stopPropagation()">
+        <p-chart type="pie" [data]="tonePieData" [options]="tonePieOpts" [plugins]="tonePiePlugins" width="64" height="64"></p-chart>
+      </div>
+
+      <ng-container *ngIf="isSentimentMode">
+        <ng-container *ngFor="let chart of provinceToneCharts">
+          <div
+            *ngIf="chart.position"
+            class="province-tone-chart-overlay"
+            [attr.title]="chart.name"
+            [style.left.px]="chart.position.left"
+            [style.top.px]="chart.position.top"
+            (click)="$event.stopPropagation()">
+            <p-chart type="pie" [data]="chart.data" [options]="tonePieOpts" [plugins]="tonePiePlugins" width="30" height="30"></p-chart>
+          </div>
+        </ng-container>
+      </ng-container>
     </div>
   </spinner>
 
