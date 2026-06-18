@@ -20,11 +20,12 @@ import { IconSearchComponent } from '../../../../core/components/icons/search/se
 import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { ScrollerModule } from 'primeng/scroller';
+import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
   selector: 'app-latest-news',
   standalone: true,
-  imports: [IconNewspaperComponent, IconInfoComponent, IconSearchComponent, CommonModule, ImgFallbackDirective, SpinnerComponent, RouterLink, DialogModule, ButtonModule, ScrollerModule],
+  imports: [IconNewspaperComponent, IconInfoComponent, IconSearchComponent, CommonModule, ImgFallbackDirective, SpinnerComponent, RouterLink, DialogModule, ButtonModule, ScrollerModule, TooltipModule],
   templateUrl: './latest-news.component.html',
   styleUrl: './latest-news.component.scss',
 })
