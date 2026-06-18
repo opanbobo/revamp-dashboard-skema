@@ -19,7 +19,12 @@
     </div>
     <div class="flex column-gap-5 row-gap-4 flex-wrap" *ngIf="articles.length > 0">
       <ng-container *ngFor="let article of articles">
-        <div class="cursor-pointer" [routerLink]="'/dashboard/articles/' + article.article_id">
+        <div
+          class="cursor-pointer"
+          [routerLink]="'/dashboard/articles/' + article.article_id"
+          [pTooltip]="article.title"
+          tooltipPosition="top"
+          tooltipStyleClass="latest-news-title-tooltip">
           <div class="flex flex-column xl:flex-row xl:align-items-start py-1 gap-3">
             <div class="w-5rem">
               <img [src]="article.image_url" [alt]="article.title" class="h-5rem w-full border-round"
@@ -65,7 +70,12 @@
     <spinner [spinning]="isLoading">
         <div class="flex justify-content-start flex-wrap row-gap-4 px-3" style="column-gap: 2rem;">
           <ng-container *ngFor="let article of moreArticles">
-            <div class="cursor-pointer" [routerLink]="'/dashboard/articles/' + article.article_id">
+            <div
+              class="cursor-pointer"
+              [routerLink]="'/dashboard/articles/' + article.article_id"
+              [pTooltip]="article.title"
+              tooltipPosition="top"
+              tooltipStyleClass="latest-news-title-tooltip">
               <div class="flex flex-column xl:flex-row xl:align-items-start py-1 gap-3">
                 <div class="w-5rem">
                   <img [src]="article.image_url" [alt]="article.title" class="h-5rem w-full border-round"
