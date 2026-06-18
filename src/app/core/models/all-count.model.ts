@@ -2,6 +2,7 @@ export interface Location {
   key: string;
   value: number;
   percentage?: number;
+  sentiment?: SentimentCount;
 }
 
 export interface TopLocation {
@@ -20,10 +21,17 @@ export interface ArticleCategory {
   count: number;
 }
 
+export interface SentimentCount {
+  positive: number;
+  negative: number;
+  neutral: number;
+}
+
 export interface ProvinceData {
   key: string;
   value: number;
   categories: ArticleCategory[];
+  sentiment?: SentimentCount;
 }
 
 export interface ProvinceCount {
