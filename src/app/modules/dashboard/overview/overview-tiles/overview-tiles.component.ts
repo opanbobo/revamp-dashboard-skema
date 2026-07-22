@@ -78,10 +78,20 @@ export class OverviewTilesComponent {
   onOverviewStateChanges = (data: any) => {
     const mediaCountTmp = { ...this.mediaCount };
     data.forEach((media: any) => {
-      if (media.label === 'Print') mediaCountTmp.print = media.total ?? 0;
-      if (media.label === 'Online') mediaCountTmp.online = media.total ?? 0;
-      if (media.label === 'TV') mediaCountTmp.tv = media.total ?? 0;
-      if (media.label === 'radio') mediaCountTmp.radio = media.total ?? 0;
+      switch (media.label?.toLowerCase()) {
+        case 'print':
+          mediaCountTmp.print = media.total ?? 0;
+          break;
+        case 'online':
+          mediaCountTmp.online = media.total ?? 0;
+          break;
+        case 'tv':
+          mediaCountTmp.tv = media.total ?? 0;
+          break;
+        case 'radio':
+          mediaCountTmp.radio = media.total ?? 0;
+          break;
+      }
     });
     mediaCountTmp.total = mediaCountTmp.print + mediaCountTmp.online + mediaCountTmp.tv + mediaCountTmp.radio;
 
