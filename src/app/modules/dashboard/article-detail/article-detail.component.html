@@ -73,6 +73,12 @@
       </video>
     </div>
 
+    <div class="mb-6 flex flex-column" *ngIf="article?.file_pdf && article?.media_type === 'media radio'">
+      <audio controls>
+        <source [src]="article?.file_pdf" />
+      </audio>
+    </div>
+
     <div class="text-sm text-color" [innerHTML]="sanitizedContent ?? article?.content ?? ''"></div>
   </spinner>
 </section>
