@@ -330,36 +330,32 @@ export class CoverageToneComponent {
 
   getCoveragePieData = (tones: Tones) => {
     const documentStyle = getComputedStyle(document.documentElement);
-    const colors: { [x: string]: string } = {
-      '0': 'gray',
-      '1': documentStyle.getPropertyValue('--positive-color'),
-      '-1': documentStyle.getPropertyValue('--negative-color'),
+    const toneOrder = [POSITIVE_TONE, NEGATIVE_TONE, NEUTRAL_TONE];
+    const colors: { [x: number]: string } = {
+      [POSITIVE_TONE]: documentStyle.getPropertyValue('--positive-color'),
+      [NEGATIVE_TONE]: documentStyle.getPropertyValue('--negative-color'),
+      [NEUTRAL_TONE]: 'gray',
     };
 
-    // Only keep keys we care about: 1 (positive), -1 (negative), 0 (neutral)
-    const validKeys = [1, -1, 0];
-    const filteredTones = tones.chart_bar.filter(v => validKeys.includes(v.key));
+    const values = toneOrder.map((tone) => {
+      const chart = tones.chart_bar.find((v) => Number(v.key) === tone);
+      const buckets = chart?.tone_per_day?.buckets ?? [];
 
-    // Sort in desired order: 1, -1, 0
-    const sortedTones = filteredTones.sort((a, b) => {
-      if (a.key === 1) return -1;
-      if (b.key === 1) return 1;
-      if (a.key === -1 && b.key === 0) return -1;
-      if (a.key === 0 && b.key === -1) return 1;
-      return 0;
+      return buckets.length
+        ? buckets.reduce((prev, bucket) => prev + bucket.doc_count, 0)
+        : chart?.doc_count ?? 0;
     });
-
-    const totalTones = filteredTones.reduce((prev, chart) => prev + chart.doc_count, 0);
+    const totalTones = values.reduce((prev, value) => prev + value, 0);
 
     return {
-      tones: [POSITIVE_TONE, NEGATIVE_TONE, NEUTRAL_TONE],
-      labels: [TONE_MAP[POSITIVE_TONE], TONE_MAP[NEGATIVE_TONE], TONE_MAP[NEUTRAL_TONE]],
+      tones: toneOrder,
+      labels: toneOrder.map((tone) => TONE_MAP[tone]),
       datasets: [
         {
-          data: sortedTones.map(v => v.doc_count),
-          backgroundColor: sortedTones.map(v => colors[v.key.toString()]),
-          percentages: sortedTones.map(v => (
-            totalTones > 0 ? ((v.doc_count / totalTones) * 100).toFixed(0) : '0'
+          data: values,
+          backgroundColor: toneOrder.map((tone) => colors[tone]),
+          percentages: values.map((value) => (
+            totalTones > 0 ? ((value / totalTones) * 100).toFixed(0) : '0'
           )),
         },
       ],
