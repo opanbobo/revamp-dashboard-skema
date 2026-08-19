@@ -619,6 +619,9 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     const positive = sentiment?.positive ?? 0;
     const negative = sentiment?.negative ?? 0;
     const neutral = sentiment?.neutral ?? 0;
+    const total = positive + negative + neutral;
+
+    if (!total) return null;
 
     return this.createTonePieData(positive, negative, neutral);
   }
