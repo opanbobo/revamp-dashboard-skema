@@ -619,6 +619,9 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     const positive = sentiment?.positive ?? 0;
     const negative = sentiment?.negative ?? 0;
     const neutral = sentiment?.neutral ?? 0;
+    const total = positive + negative + neutral;
+
+    if (!total) return null;
 
     return this.createTonePieData(positive, negative, neutral);
   }
@@ -652,6 +655,86 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     if (normalizedTone === '0' || normalizedTone === 'neutral') return 'neutral';
 
     return null;
+  }
+
+  private normalizeLocationKey(value: string | null | undefined): string {
+    return `${value ?? ''}`.trim().replace(/\s+/g, ' ').toUpperCase();
+  }
+
+  private getProvinceDisplayName(province: string): string {
+    const normalizedProvince = this.normalizeLocationKey(province);
+
+    return this.provinceMapping[normalizedProvince] ?? province;
+  }
+
+  private getCityDisplayName(cityName: string | null | undefined): string | null {
+    const normalizedCityName = `${cityName ?? ''}`.trim();
+
+    if (!normalizedCityName) return null;
+    if (normalizedCityName.startsWith('Kota') || normalizedCityName.startsWith('Kabupaten')) return normalizedCityName;
+
+    return `Kabupaten ${normalizedCityName}`;
+  }
+
+  private findLocationData(
+    data: AllCount,
+    cityName: string,
+    provinceName?: string
+  ): Location | undefined {
+    const cityKey = this.normalizeLocationKey(cityName);
+    const provinceKey = this.normalizeLocationKey(this.getProvinceDisplayName(provinceName ?? ''));
+    const matches = data.data.filter((location) => this.normalizeLocationKey(location.key) === cityKey);
+
+    if (matches.length <= 1) return matches[0];
+    if (!provinceKey) return matches[0];
+
+    const provinceFields = ['province', 'province_name', 'provinsi', 'provinsi_name', 'parent', 'parent_name'];
+    const provinceMatch = matches.find((location) =>
+      provinceFields.some((field) => {
+        const value = (location as any)[field];
+
+        return value && this.normalizeLocationKey(this.getProvinceDisplayName(value)) === provinceKey;
+      })
+    );
+
+    return provinceMatch ?? matches[0];
+  }
+
+  private applyCityCountDataToGroup(cityLayerGroup: L.LayerGroup, data: AllCount): number {
+    let matchCount = 0;
+
+    cityLayerGroup.eachLayer((layer: any) => {
+      if (!layer.cityName) return;
+
+      const featureData = this.findLocationData(data, layer.cityName, layer.provinceName);
+
+      if (featureData) {
+        matchCount += 1;
+        layer.sentiment = featureData.sentiment;
+      }
+    });
+
+    return matchCount;
+  }
+
+  private renderCityToneCharts(cityLayerGroup: L.LayerGroup): void {
+    this.provinceToneCharts = [];
+
+    cityLayerGroup.eachLayer((layer: any) => {
+      const toneData = this.createTonePieDataFromSentiment(layer.sentiment);
+
+      if (toneData && layer.cityName) {
+        this.provinceToneCharts.push({
+          name: layer.cityName,
+          layer,
+          data: toneData,
+          position: null,
+          offsetY: this.CITY_TONE_CHART_Y_OFFSET,
+        });
+      }
+    });
+
+    this.updateProvinceToneChartPositions();
   }
 
   private updateToneChartPosition = (): void => {
@@ -804,7 +887,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
 
               if (this.isSentimentMode) {
                 this.map?.fitBounds(e.target.getBounds());
-                this.addCitiesLayer(clickedFeatureName);
+                this.addCitiesLayer(clickedFeatureName, filter);
                 return;
               }
 
@@ -821,7 +904,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
                 fillOpacity: 1,
               });
 
-              this.addCitiesLayer(clickedFeatureName);
+              this.addCitiesLayer(clickedFeatureName, filter);
               this.fetchArticlesByGeo(filter, this.provinceMapping[clickedFeatureName] ?? clickedFeatureName, e.target);
             },
             mouseover: (e) => {
@@ -864,12 +947,6 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   addCitiesGeoJSONLayer(filter: any, data: AllCount): void {
-    const getDataByLocation = (featureName: string) => {
-      return data.data.find((location) =>
-        location.key.toUpperCase() === featureName?.toUpperCase()
-      );
-    };
-
     const provinceGroups = new Map<string, L.LayerGroup>();
 
     this.mapService.getGeoJsonDataCities().subscribe({
@@ -879,11 +956,9 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
         this.geoJsonLayer = geoJSON(geoJsonData, {
           onEachFeature: (feature, layer) => {
             const provinceName = feature.properties.WADMPR.toUpperCase();
-            let cityName = feature.properties.WADMKK;
+            const cityName = this.getCityDisplayName(feature.properties.WADMKK);
 
-            if (!cityName.startsWith('Kota')) {
-              cityName = 'Kabupaten ' + cityName;
-            }
+            if (!provinceName || !cityName) return;
 
             if (!provinceGroups.has(provinceName)) {
               provinceGroups.set(provinceName, L.layerGroup());
@@ -896,7 +971,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
             (layer as any).cityName = cityName;
             (layer as any).provinceName = provinceName;
 
-            const featureData = getDataByLocation(cityName);
+            const featureData = this.findLocationData(data, cityName, provinceName);
             const tooltipContent = this.isSentimentMode
               ? cityName
               : `${cityName}: ${featureData?.value ?? 0}`;
@@ -944,7 +1019,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
               mouseout: (e) => {
                 if (!this.tooltipDragKeyPressed) {
                   const hoveredLayer = e.target;
-                  const featureData = getDataByLocation(cityName);
+                  const featureData = this.findLocationData(data, cityName, provinceName);
 
                   hoveredLayer.setStyle({
                     fillColor: this.getMapColor(featureData?.value ?? 0, data.data), // Pass data.data
@@ -955,11 +1030,9 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
             });
           },
           style: (feature) => {
-            let cityName = feature?.properties.WADMKK;
-            if (!cityName.startsWith('Kota')) {
-              cityName = 'Kabupaten ' + cityName;
-            }
-            const featureData = getDataByLocation(cityName);
+            const provinceName = feature?.properties.WADMPR.toUpperCase();
+            const cityName = this.getCityDisplayName(feature?.properties.WADMKK);
+            const featureData = cityName ? this.findLocationData(data, cityName, provinceName) : null;
 
             return {
               fillColor: this.getMapColor(featureData?.value ?? 0, data.data), // Pass data.data
@@ -975,7 +1048,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
         if (this.pendingProvinceLayer) {
           const pendingProvince = this.pendingProvinceLayer;
           this.pendingProvinceLayer = null;
-          this.addCitiesLayer(pendingProvince);
+          this.addCitiesLayer(pendingProvince, filter);
         }
       },
       error: (error) => {
@@ -1075,7 +1148,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  addCitiesLayer = (province: string): void => {
+  addCitiesLayer = (province: string, filter?: FilterRequestPayload | FilterState): void => {
     console.log(`Adding cities layer for province: ${province}`);
 
     if (this.selectedLayerProv) {
@@ -1099,23 +1172,37 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
       cityLayerGroup.addTo(this.map!);
 
       if (this.isSentimentMode) {
-        this.provinceToneCharts = [];
+        this.renderCityToneCharts(cityLayerGroup);
 
-        cityLayerGroup.eachLayer((layer: any) => {
-          const toneData = this.createTonePieDataFromSentiment(layer.sentiment);
+        if (filter) {
+          this.isLoadingCities = true;
+          const provinceName = this.getProvinceDisplayName(province);
 
-          if (toneData && layer.cityName) {
-            this.provinceToneCharts.push({
-              name: layer.cityName,
-              layer,
-              data: toneData,
-              position: null,
-              offsetY: this.CITY_TONE_CHART_Y_OFFSET,
+          this.mapService
+            .getAllCount({
+              ...(filter as FilterRequestPayload),
+              geo_loc: provinceName,
+              type_location: 'article',
+            })
+            .subscribe({
+              next: (res) => {
+                const matchCount = this.applyCityCountDataToGroup(cityLayerGroup, res);
+
+                if (matchCount) {
+                  this.renderCityToneCharts(cityLayerGroup);
+                } else {
+                  console.warn(`No city-level sentiment rows matched for province: ${provinceName}`);
+                }
+              },
+              error: (error) => {
+                console.error(`Error loading city sentiment for province ${provinceName}:`, error);
+              },
+              complete: () => {
+                this.isLoadingCities = false;
+                this.cdr.detectChanges();
+              },
             });
-          }
-        });
-
-        this.updateProvinceToneChartPositions();
+        }
       }
 
       // Set up tooltip dragging for city layers that are now visible
