@@ -50,7 +50,10 @@
           [virtualScrollItemSize]="38"></p-multiSelect>
       </div>
     </div>
-    <file-upload [form]="formGroup"></file-upload>
+    <file-upload
+      [form]="formGroup"
+      [maxFileSizeBytes]="maxUploadFileSizeBytes"
+      (fileRejected)="showFileUploadError($event)"></file-upload>
     <textarea rows="5" cols="30" pInputTextarea placeholder="Content" formControlName="content"></textarea>
     <p-button
       label="Send Email"

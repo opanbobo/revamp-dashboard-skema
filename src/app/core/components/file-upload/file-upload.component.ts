@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { ImgFallbackDirective } from '../../directive/img-fallback.directive';
@@ -18,6 +18,8 @@ export class FileUploadComponent {
     this.filter?.unsubscribe?.();
   }
   @Input() form!: FormGroup;
+  @Input() maxFileSizeBytes = 1024 * 1024;
+  @Output() fileRejected = new EventEmitter<string>();
 
   uploadedImageURL: SafeUrl | null = null;
   uploadedImageURLs: SafeUrl[] = [];
@@ -43,21 +45,34 @@ export class FileUploadComponent {
   }
 
   onFileSelected(files: FileList): void {
-    const objectURL = URL.createObjectURL(files?.[0]!);
-    this.file = files?.[0];
-    this.uploadedImageURL = this.sanitizer.bypassSecurityTrustUrl(objectURL);
-    this.form.patchValue({ image: files?.[0] });
+    const file = files?.[0];
+    if (file) {
+      this.addImage(file);
+    }
   }
 
   onImagePicked(event: Event) {
     const file = (event.target as HTMLInputElement)?.files?.[0];
     if (file) {
-      const objectURL = URL.createObjectURL(file);
-      const safeURL = this.sanitizer.bypassSecurityTrustUrl(objectURL);
-      const currentImages = this.form.value.image || [];
-      this.form.patchValue({ image: [...currentImages, file] });
-      this.uploadedImageURLs.push(safeURL);
+      this.addImage(file);
+      (event.target as HTMLInputElement).value = '';
     }
+  }
+
+  private addImage(file: File) {
+    if (file.size > this.maxFileSizeBytes) {
+      this.fileRejected.emit('The selected file is too large. Maximum file size is 1 MB.');
+      return;
+    }
+
+    const objectURL = URL.createObjectURL(file);
+    const safeURL = this.sanitizer.bypassSecurityTrustUrl(objectURL);
+    const currentImages = this.form.value.image || [];
+
+    this.file = file;
+    this.uploadedImageURL = safeURL;
+    this.form.patchValue({ image: [...currentImages, file] });
+    this.uploadedImageURLs.push(safeURL);
   }
 
   removeImage(index: number) {
