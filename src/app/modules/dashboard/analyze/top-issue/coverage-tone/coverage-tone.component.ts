@@ -355,7 +355,7 @@ export class CoverageToneComponent {
           data: values,
           backgroundColor: toneOrder.map((tone) => colors[tone]),
           percentages: values.map((value) => (
-            totalTones > 0 ? ((value / totalTones) * 100).toFixed(0) : '0'
+            totalTones > 0 ? ((value / totalTones) * 100).toFixed(2) : '0.00'
           )),
         },
       ],
