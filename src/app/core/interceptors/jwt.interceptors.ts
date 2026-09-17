@@ -1,16 +1,18 @@
 import { HttpInterceptorFn } from '@angular/common/http';
-import { getUserFromLocalStorage } from '../../shared/utils/AuthUtils';
+import { getUserFromLocalStorage, USER_KEY } from '../../shared/utils/AuthUtils';
 import { catchError } from 'rxjs/operators';
 import { throwError } from 'rxjs';
 import { inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import * as AuthActions from '../store/auth/auth.actions';
+import { ConfirmationService } from 'primeng/api';
 
 let isLoggingOut = false;
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   const store = inject(Store); // ✅ FIX: inject store
+  const confirmationService = inject(ConfirmationService);
 
   // Skip login request
   if (req.url.includes('login')) return next(req);
@@ -35,20 +37,31 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   return next(req).pipe(
     catchError((error) => {
 
-      if (error.status === 401 && !isLoggingOut) {
-        console.warn('401 detected → force logout');
+      if ((error.status === 401 || error.status === 403) && !isLoggingOut) {
+        console.warn(`${error.status} detected → force logout`);
 
         isLoggingOut = true;
 
-        // Dispatch logout to NgRx
-        store.dispatch(AuthActions.logout());
-
-        // Clear session (UP-login style)
-        localStorage.removeItem('USER_KEY');
-        sessionStorage.clear();
-
-        // Redirect
-        window.location.href = '/#/login';
+        if (error.status === 403) {
+          confirmationService.confirm({
+            header: 'Access Forbidden',
+            message: 'Your session is no longer authorized. Please login again.',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'OK',
+            rejectVisible: false,
+            accept: () => {
+              store.dispatch(AuthActions.logout());
+              localStorage.removeItem(USER_KEY);
+              sessionStorage.clear();
+              window.location.href = '/#/login';
+            },
+          });
+        } else {
+          store.dispatch(AuthActions.logout());
+          localStorage.removeItem(USER_KEY);
+          sessionStorage.clear();
+          window.location.href = '/#/login';
+        }
       }
 
       return throwError(() => error);
