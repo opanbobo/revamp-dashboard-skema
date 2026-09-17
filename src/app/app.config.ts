@@ -10,6 +10,7 @@ import { authInterceptor } from './core/interceptors/jwt.interceptors';
 import { effects, reducers } from './core/store';
 import { KeycloakService } from 'keycloak-angular';
 import { provideOAuthClient } from 'angular-oauth2-oidc';
+import { ConfirmationService } from 'primeng/api';
 
 function initializeKeycloak(keycloak: KeycloakService) {
   return () =>
@@ -45,6 +46,7 @@ export const appConfig: ApplicationConfig = {
       deps: [KeycloakService]
     },
     KeycloakService,
+    ConfirmationService,
     provideOAuthClient()
   ],
 };

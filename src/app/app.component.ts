@@ -9,11 +9,12 @@ import { AppState } from './core/store';
 import { selectAuthState } from './core/store/auth/auth.selectors';
 import * as AuthActions from './core/store/auth/auth.actions';
 import { AuthService } from './core/services/auth.service';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, ConfirmDialogModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })
