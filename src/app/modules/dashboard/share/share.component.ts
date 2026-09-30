@@ -36,7 +36,8 @@ export class ShareComponent {
   ngOnDestroy() {
     this.filter?.unsubscribe?.();
   }
-  maxUploadFileSizeBytes = 1024 * 1024;
+  readonly maxUploadFileSizeBytes = 500 * 1024;
+  readonly forbiddenUploadFileExtensions = ['pdf'];
   isLoadingMedias: boolean = false;
   mediaOptions: WartawanMedia[] = [];
   editorDeskOptions: { name: string; value: string }[] = [
@@ -76,7 +77,7 @@ export class ShareComponent {
   showFileUploadError = (message: string) => {
     this.messageService.add({
       severity: 'error',
-      summary: 'File Too Large',
+      summary: 'File Upload Error',
       detail: message,
     });
   };
