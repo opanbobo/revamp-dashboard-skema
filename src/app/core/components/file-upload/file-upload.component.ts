@@ -19,6 +19,7 @@ export class FileUploadComponent {
   }
   @Input() form!: FormGroup;
   @Input() maxFileSizeBytes = 1024 * 1024;
+  @Input() forbiddenFileExtensions: string[] = [];
   @Output() fileRejected = new EventEmitter<string>();
 
   uploadedImageURL: SafeUrl | null = null;
@@ -60,8 +61,24 @@ export class FileUploadComponent {
   }
 
   private addImage(file: File) {
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    const normalizedForbiddenExtensions = this.forbiddenFileExtensions.map((extension) =>
+      extension.replace(/^\./, '').toLowerCase()
+    );
+    const hasForbiddenExtension =
+      !!fileExtension && normalizedForbiddenExtensions.includes(fileExtension);
+    const hasForbiddenPdfMimeType =
+      normalizedForbiddenExtensions.includes('pdf') && file.type.toLowerCase() === 'application/pdf';
+
+    if (hasForbiddenExtension || hasForbiddenPdfMimeType) {
+      this.fileRejected.emit('PDF files are not allowed.');
+      return;
+    }
+
     if (file.size > this.maxFileSizeBytes) {
-      this.fileRejected.emit('The selected file is too large. Maximum file size is 1 MB.');
+      this.fileRejected.emit(
+        `The selected file is too large. Maximum file size is ${this.formatFileSize(this.maxFileSizeBytes)}.`
+      );
       return;
     }
 
@@ -73,6 +90,14 @@ export class FileUploadComponent {
     this.uploadedImageURL = safeURL;
     this.form.patchValue({ image: [...currentImages, file] });
     this.uploadedImageURLs.push(safeURL);
+  }
+
+  private formatFileSize(bytes: number): string {
+    if (bytes < 1024 * 1024) {
+      return `${Math.round(bytes / 1024)} KB`;
+    }
+
+    return `${Number((bytes / (1024 * 1024)).toFixed(1))} MB`;
   }
 
   removeImage(index: number) {

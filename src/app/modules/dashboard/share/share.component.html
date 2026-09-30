@@ -53,6 +53,7 @@
     <file-upload
       [form]="formGroup"
       [maxFileSizeBytes]="maxUploadFileSizeBytes"
+      [forbiddenFileExtensions]="forbiddenUploadFileExtensions"
       (fileRejected)="showFileUploadError($event)"></file-upload>
     <textarea rows="5" cols="30" pInputTextarea placeholder="Content" formControlName="content"></textarea>
     <p-button
