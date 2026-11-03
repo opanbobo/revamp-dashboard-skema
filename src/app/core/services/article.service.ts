@@ -163,7 +163,7 @@ export class ArticleService {
     const v4Params = {
       term: filter.term ?? '',
       start_date: `${filter.start_date}T00:00:00`,
-      end_date: `${filter.end_date}T23:00:00`,
+      end_date: `${filter.end_date}T23:59:59`,
       page: filter.page ?? 0,
       max_size: filter.maxSize ?? filter.size ?? 8,
       media_category: filter.media_category ?? 'all',
