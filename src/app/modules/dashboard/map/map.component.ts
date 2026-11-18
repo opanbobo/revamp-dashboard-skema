@@ -72,13 +72,9 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
   articles: Article[] = [];
   isLoadingArticles: boolean = false;
   isLoadingCities: boolean = false;
-  tonePieData: any;
   tonePieOpts: any;
   tonePiePlugins = [ChartDataLabels];
-  toneChartPosition: { left: number; top: number } | null = null;
-  selectedToneLocation: string | null = null;
   provinceToneCharts: ProvinceToneChart[] = [];
-  private selectedToneLayer: L.Layer | null = null;
 
   provinceLayers: Map<string, L.Layer> = new Map();
   citiesLayers: Map<string, L.Layer> = new Map();
@@ -535,15 +531,10 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
 
   fetchArticlesByGeo = (
     filter: FilterRequestPayload | FilterState | null,
-    location = this.selectedLoc,
-    layer?: L.Layer
+    location = this.selectedLoc
   ): void => {
     this.isLoadingArticles = true;
     this.selectedLoc = location;
-    this.selectedToneLocation = location;
-    this.selectedToneLayer = layer ?? this.selectedToneLayer;
-    this.tonePieData = null;
-    this.updateToneChartPosition();
 
     let req = filter ?? initialState;
     if (location) req = { ...req, geo_loc: location };
@@ -552,15 +543,12 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
       next: (res) => {
         this.isLoadingArticles = false;
         this.articles = res.data;
-        this.initTonePieData(res.data);
-        this.updateToneChartPosition();
         this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error loading articles by geo:', error);
         this.isLoadingArticles = false;
         this.articles = [];
-        this.initTonePieData([]);
         this.cdr.detectChanges();
       },
     });
@@ -590,29 +578,6 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
         },
       },
     };
-  }
-
-  private initTonePieData(articles: Article[]): void {
-    const toneCounts = articles.reduce(
-      (counts, article) => {
-        const tone = this.normalizeTone(article.tone);
-
-        if (tone === 'positive') counts.positive += 1;
-        if (tone === 'negative') counts.negative += 1;
-        if (tone === 'neutral') counts.neutral += 1;
-
-        return counts;
-      },
-      { positive: 0, negative: 0, neutral: 0 }
-    );
-
-    const total = toneCounts.positive + toneCounts.negative + toneCounts.neutral;
-    if (!total) {
-      this.tonePieData = null;
-      return;
-    }
-
-    this.tonePieData = this.createTonePieData(toneCounts.positive, toneCounts.negative, toneCounts.neutral);
   }
 
   private createTonePieDataFromSentiment(sentiment?: SentimentCount): any {
@@ -645,16 +610,6 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
         },
       ],
     };
-  }
-
-  private normalizeTone(tone: Article['tone'] | string | null | undefined): 'positive' | 'negative' | 'neutral' | null {
-    const normalizedTone = `${tone ?? ''}`.trim().toLowerCase();
-
-    if (normalizedTone === '1' || normalizedTone === 'positive') return 'positive';
-    if (normalizedTone === '-1' || normalizedTone === 'negative') return 'negative';
-    if (normalizedTone === '0' || normalizedTone === 'neutral') return 'neutral';
-
-    return null;
   }
 
   private normalizeLocationKey(value: string | null | undefined): string {
@@ -737,27 +692,6 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     this.updateProvinceToneChartPositions();
   }
 
-  private updateToneChartPosition = (): void => {
-    if (!this.map || !this.selectedToneLayer) {
-      this.toneChartPosition = null;
-      return;
-    }
-
-    const layer = this.selectedToneLayer as any;
-    const center = layer.getBounds?.().getCenter?.() ?? layer.getLatLng?.();
-
-    if (!center) {
-      this.toneChartPosition = null;
-      return;
-    }
-
-    const point = this.map.latLngToContainerPoint(center);
-    this.toneChartPosition = {
-      left: point.x,
-      top: point.y,
-    };
-  };
-
   private updateProvinceToneChartPositions = (): void => {
     if (!this.map || !this.isSentimentMode) {
       this.provinceToneCharts.forEach((chart) => {
@@ -784,7 +718,6 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
   };
 
   private updateToneChartOverlays = (): void => {
-    this.updateToneChartPosition();
     this.updateProvinceToneChartPositions();
     this.cdr.detectChanges();
   };
@@ -905,7 +838,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
               });
 
               this.addCitiesLayer(clickedFeatureName, filter);
-              this.fetchArticlesByGeo(filter, this.provinceMapping[clickedFeatureName] ?? clickedFeatureName, e.target);
+              this.fetchArticlesByGeo(filter, this.provinceMapping[clickedFeatureName] ?? clickedFeatureName);
             },
             mouseover: (e) => {
               e.target.setStyle({
@@ -1006,7 +939,7 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
                   return;
                 }
 
-                this.fetchArticlesByGeo(filter, clickedFeatureName, e.target);
+                this.fetchArticlesByGeo(filter, clickedFeatureName);
               },
               mouseover: (e) => {
                 if (!this.tooltipDragKeyPressed) {
@@ -1260,9 +1193,6 @@ export class MapComponent implements OnInit, AfterViewInit, OnDestroy {
     this.selectedGroupCities = null;
     this.selectedLayerProv = null;
     this.pendingProvinceLayer = null;
-    this.selectedToneLayer = null;
-    this.toneChartPosition = null;
-    this.tonePieData = null;
     this.provinceToneCharts = [];
 
     // Clear tooltip data map
