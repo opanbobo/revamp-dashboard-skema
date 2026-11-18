@@ -14,7 +14,7 @@ export interface Article {
   file_pdf: string;
   columne: string;
   size_jpeg: string;
-  journalist: string;
+  journalist?: string | null;
   rate_bw: string;
   rate_fc: string;
   is_chart: string;

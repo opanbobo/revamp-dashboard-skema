@@ -28,15 +28,6 @@
         (leafletMapReady)="onMapReady($event)"
         [leafletOptions]="options"></div>
 
-      <div
-        *ngIf="!isSentimentMode && tonePieData && toneChartPosition"
-        class="tone-chart-overlay"
-        [style.left.px]="toneChartPosition.left"
-        [style.top.px]="toneChartPosition.top"
-        (click)="$event.stopPropagation()">
-        <p-chart type="pie" [data]="tonePieData" [options]="tonePieOpts" [plugins]="tonePiePlugins" width="64" height="64"></p-chart>
-      </div>
-
       <ng-container *ngIf="isSentimentMode">
         <ng-container *ngFor="let chart of provinceToneCharts">
           <div

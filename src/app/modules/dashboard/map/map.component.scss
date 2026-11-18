@@ -2,16 +2,6 @@
   position: relative;
 }
 
-.tone-chart-overlay {
-  position: absolute;
-  width: 64px;
-  height: 64px;
-  transform: translate(-50%, -50%);
-  z-index: 900;
-  pointer-events: auto;
-  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.35));
-}
-
 .province-tone-chart-overlay {
   position: absolute;
   width: 30px;
